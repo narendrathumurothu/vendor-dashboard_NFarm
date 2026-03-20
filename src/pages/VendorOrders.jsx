@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle, X, RefreshCw } from 'lucide-react';
 
 const backgroundImages = [
@@ -8,10 +8,11 @@ const backgroundImages = [
 ];
 
 const statusColors = {
-  'Pending':   { bg: '#f1e4e4', color: '#e00e0e', emoji: '⏳' },
-  'Confirmed': { bg: '#e6e9d7', color: '#e0f926', emoji: '✅' },
-  'Delivered': { bg: '#d1ead8', color: '#119642', emoji: '🎉' },
-  'Cancelled': { bg: '#efe4e4', color: '#620710', emoji: '❌' },
+  'Pending':          { bg: '#f1e4e4', color: '#e00e0e', emoji: '⏳' },
+  'Confirmed':        { bg: '#e6e9d7', color: '#2563eb', emoji: '✅' },
+  'Out for Delivery': { bg: '#e0f2fe', color: '#0284c7', emoji: '🚚' },
+  'Delivered':        { bg: '#d1ead8', color: '#119642', emoji: '🎉' },
+  'Cancelled':        { bg: '#efe4e4', color: '#620710', emoji: '❌' },
 };
 
 const categoryEmojis = {
@@ -24,12 +25,12 @@ const VendorOrders = () => {
   const token    = localStorage.getItem('token');
   const vendorId = localStorage.getItem('vendorId');
 
-  const [currentBg, setCurrentBg]   = useState(0);
-  const [orders, setOrders]         = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [filter, setFilter]         = useState('All');
-  const [success, setSuccess]       = useState('');
-  const [error, setError]           = useState('');
+  const [currentBg, setCurrentBg] = useState(0);
+  const [orders, setOrders]       = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [filter, setFilter]       = useState('All');
+  const [success, setSuccess]     = useState('');
+  const [error, setError]         = useState('');
 
   // Background slideshow
   useEffect(() => {
@@ -39,9 +40,8 @@ const VendorOrders = () => {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => { fetchOrders(); }, []);
-
-  const fetchOrders = async () => {
+  // FIX: useCallback తో fetchOrders
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const res  = await fetch(
@@ -52,7 +52,9 @@ const VendorOrders = () => {
       setOrders(Array.isArray(data) ? data : []);
     } catch (err) { console.log(err); }
     setLoading(false);
-  };
+  }, [token, vendorId]);
+
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const updateStatus = async (orderId, status) => {
     try {
@@ -66,7 +68,7 @@ const VendorOrders = () => {
       );
       const data = await res.json();
       if (res.ok) {
-        setSuccess(`✅ Order ${status}!`);
+        setSuccess(`✅ Order marked as ${status}!`);
         fetchOrders();
         setTimeout(() => setSuccess(''), 3000);
       } else {
@@ -81,11 +83,12 @@ const VendorOrders = () => {
   );
 
   const counts = {
-    All:       orders.length,
-    Pending:   orders.filter(o => o.status === 'Pending').length,
-    Confirmed: orders.filter(o => o.status === 'Confirmed').length,
-    Delivered: orders.filter(o => o.status === 'Delivered').length,
-    Cancelled: orders.filter(o => o.status === 'Cancelled').length,
+    All:              orders.length,
+    Pending:          orders.filter(o => o.status === 'Pending').length,
+    Confirmed:        orders.filter(o => o.status === 'Confirmed').length,
+    'Out for Delivery': orders.filter(o => o.status === 'Out for Delivery').length,
+    Delivered:        orders.filter(o => o.status === 'Delivered').length,
+    Cancelled:        orders.filter(o => o.status === 'Cancelled').length,
   };
 
   return (
@@ -102,10 +105,7 @@ const VendorOrders = () => {
           transition: 'opacity 1.5s ease-in-out', zIndex: 0,
         }} />
       ))}
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1
-      }} />
+      <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1 }} />
 
       <div style={{ position: 'relative', zIndex: 2 }} className="space-y-5">
 
@@ -126,10 +126,10 @@ const VendorOrders = () => {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: 'Pending',   value: counts.Pending,   emoji: '⏳', color: '#ca3f04' },
-            { label: 'Confirmed', value: counts.Confirmed, emoji: '✅', color: '#2563eb' },
-            { label: 'Delivered', value: counts.Delivered, emoji: '🎉', color: '#16a34a' },
-            { label: 'Cancelled', value: counts.Cancelled, emoji: '❌', color: '#dc2626' },
+            { label: 'Pending',          value: counts.Pending,            emoji: '⏳', color: '#ca3f04' },
+            { label: 'Confirmed',        value: counts.Confirmed,          emoji: '✅', color: '#2563eb' },
+            { label: 'Out for Delivery', value: counts['Out for Delivery'], emoji: '🚚', color: '#0284c7' },
+            { label: 'Delivered',        value: counts.Delivered,          emoji: '🎉', color: '#16a34a' },
           ].map((stat, i) => (
             <div key={i} className="rounded-2xl p-4 text-center"
               style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}>
@@ -155,7 +155,7 @@ const VendorOrders = () => {
         {/* Filter Tabs */}
         <div className="rounded-2xl p-3 flex gap-2 flex-wrap"
           style={{ background: 'rgba(212, 230, 54, 0.85)', backdropFilter: 'blur(10px)' }}>
-          {['All', 'Pending', 'Confirmed', 'Delivered', 'Cancelled'].map(f => (
+          {['All', 'Pending', 'Confirmed', 'Out for Delivery', 'Delivered', 'Cancelled'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className="px-4 py-2 rounded-xl text-xs font-medium transition-all"
               style={{
@@ -178,9 +178,7 @@ const VendorOrders = () => {
             style={{ background: 'rgba(58, 218, 138, 0.85)' }}>
             <p className="text-6xl mb-4">📦</p>
             <h3 className="text-xl font-bold text-gray-800">No Orders Yet</h3>
-            <p className="text-gray-500 mt-2">
-              When the Customer Order your products it Shown here 
-            </p>
+            <p className="text-gray-500 mt-2">When customers order your products it will show here.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -188,7 +186,7 @@ const VendorOrders = () => {
               const status = statusColors[order.status] || statusColors['Pending'];
               return (
                 <div key={index} className="rounded-2xl overflow-hidden"
-                  style={{ background: 'rgba(244, 26, 26, 0.95)' }}>
+                  style={{ background: 'rgba(255,255,255,0.95)' }}>
 
                   {/* Order Header */}
                   <div className="flex items-center justify-between px-5 py-3"
@@ -234,8 +232,7 @@ const VendorOrders = () => {
                   <div className="px-5 py-3 space-y-2">
                     <p className="text-gray-500 text-xs font-medium">📦 Ordered Items:</p>
                     {order.items.map((item, i) => (
-                      <div key={i}
-                        className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+                      <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
                         <div className="w-12 h-12 bg-white rounded-xl overflow-hidden flex-shrink-0">
                           {item.image ? (
                             <img src={`http://localhost:4000/uploads/${item.image}`}
@@ -248,51 +245,54 @@ const VendorOrders = () => {
                         </div>
                         <div className="flex-1">
                           <p className="text-gray-800 text-sm font-medium">{item.productName}</p>
-                          <p className="text-gray-400 text-xs">
-                            {categoryEmojis[item.category]} {item.category}
-                          </p>
-                          <p className="text-gray-500 text-xs">
-                            Qty: {item.qty} × ₹{item.price}
-                          </p>
+                          <p className="text-gray-400 text-xs">{categoryEmojis[item.category]} {item.category}</p>
+                          <p className="text-gray-500 text-xs">Qty: {item.qty} × ₹{item.price}</p>
                         </div>
                         <p className="font-bold text-green-600">₹{item.price * item.qty}</p>
                       </div>
                     ))}
                   </div>
 
-                  {/* Action Buttons */}
-                  {order.status === 'Pending' && (
-                    <div className="px-5 py-3 flex gap-2"
-                      style={{ borderTop: '1px solid #f52c19' }}>
-                      <button
-                        onClick={() => updateStatus(order._id, 'Confirmed')}
-                        className="flex-1 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium transition-all">
-                        <CheckCircle size={16} /> ✅ Confirm Order
-                      </button>
-                      <button
-                        onClick={() => updateStatus(order._id, 'Cancelled')}
-                        className="flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2.5 rounded-xl text-sm font-medium transition-all">
-                        <X size={16} /> Cancel
-                      </button>
-                    </div>
-                  )}
+                  {/* ─── Action Buttons ─── */}
 
+                  {/* Pending → Confirm or Cancel */}
                   {order.status === 'Confirmed' && (
-                    <div className="px-5 py-3"
-                      style={{ borderTop: '1px solid #a9ed16' }}>
+                    <div className="px-5 py-3 flex gap-2"
+                      style={{ borderTop: '1px solid #e5e7eb' }}>
                       <button
-                        onClick={() => updateStatus(order._id, 'Delivered')}
-                        className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-2.5 rounded-xl text-sm font-medium transition-all">
-                        🚚 Mark as Delivered
+                        onClick={() => updateStatus(order._id, 'Out for Delivery')}
+                        className="flex-1 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium transition-all">
+                        🚚 Mark as Out for Delivery
                       </button>
                     </div>
                   )}
 
+                  {/* Out for Delivery — waiting for Admin to confirm Delivered */}
+                  {order.status === 'Out for Delivery' && (
+                    <div className="px-5 py-3 bg-blue-50"
+                      style={{ borderTop: '1px solid #bae6fd' }}>
+                      <p className="text-blue-600 text-sm text-center font-medium">
+                        🚚 Out for Delivery — Waiting for Admin to confirm Delivered!
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Delivered */}
                   {order.status === 'Delivered' && (
                     <div className="px-5 py-3 bg-green-50"
-                      style={{ borderTop: '1px solid #067912' }}>
+                      style={{ borderTop: '1px solid #bbf7d0' }}>
                       <p className="text-green-600 text-sm text-center font-medium">
-                        🎉 Order Successfully Delivered!
+                        🎉 Order Successfully Delivered! Customer has been notified.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Cancelled */}
+                  {order.status === 'Cancelled' && (
+                    <div className="px-5 py-3 bg-red-50"
+                      style={{ borderTop: '1px solid #fecaca' }}>
+                      <p className="text-red-600 text-sm text-center font-medium">
+                        ❌ Order Cancelled.
                       </p>
                     </div>
                   )}
