@@ -33,14 +33,14 @@ const Home = ({ setActivePage }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // FIX 1: useCallback తో fetchAll define చేయడం వల్ల useEffect dependency సరిగ్గా పని చేస్తుంది
+  
   const fetchAll = useCallback(async () => {
     try {
       const vendorId = localStorage.getItem('vendorId');
       const [firmRes, priceRes, orderRes] = await Promise.all([
-        fetch('http://localhost:4000/firms/my-firms', { headers: { token } }),
-        fetch('http://localhost:4000/marketprice/getallprices'),
-        fetch(`http://localhost:4000/orders/vendor-orders/${vendorId}`, { headers: { token } }),
+        fetch('https://backend-node-js-nfarm.onrender.com/firms/my-firms', { headers: { token } }),
+        fetch('https://backend-node-js-nfarm.onrender.com/marketprice/getallprices'),
+        fetch(`https://backend-node-js-nfarm.onrender.com/orders/vendor-orders/${vendorId}`, { headers: { token } }),
       ]);
       const [firmData, priceData, orderData] = await Promise.all([
         firmRes.json(), priceRes.json(), orderRes.json(),
@@ -54,16 +54,16 @@ const Home = ({ setActivePage }) => {
       // All products from all firms
       let allProducts = [];
       for (const firm of firmsArr) {
-        const prodRes  = await fetch(`http://localhost:4000/products/firm/${firm._id}`, { headers: { token } });
+        const prodRes  = await fetch(`https://backend-node-js-nfarm.onrender.com/products/firm/${firm._id}`, { headers: { token } });
         const prodData = await prodRes.json();
         if (Array.isArray(prodData)) allProducts = [...allProducts, ...prodData];
       }
       setProducts(allProducts);
     } catch (err) { console.log(err); }
     setLoading(false);
-  }, [token]); // FIX 2: token dependency add చేశాం
+  }, [token]); 
 
-  // FIX 3: fetchAll dependency సరిగ్గా add చేశాం
+  
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   // High demand products (price >= 2000/quintal = 20/kg)
@@ -152,7 +152,7 @@ const Home = ({ setActivePage }) => {
                 <div key={i} className="bg-gray-50 rounded-xl overflow-hidden">
                   <div className="h-20 bg-green-100">
                     {firm.image ? (
-                      <img src={`http://localhost:4000/uploads/${firm.image}`}
+                      <img src={`https://backend-node-js-nfarm.onrender.com/uploads/${firm.image}`}
                         alt={firm.firmName} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-3xl">
@@ -195,7 +195,7 @@ const Home = ({ setActivePage }) => {
                 <div key={i} className="bg-gray-50 rounded-xl overflow-hidden">
                   <div className="h-20 bg-green-50">
                     {product.image ? (
-                      <img src={`http://localhost:4000/uploads/${product.image}`}
+                      <img src={`https://backend-node-js-nfarm.onrender.com/uploads/${product.image}`}
                         alt={product.productName} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-3xl">

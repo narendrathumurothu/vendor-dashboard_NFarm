@@ -56,7 +56,7 @@ const Firms = () => {
   // ✅ Fetch firms with pagination
   const fetchFirms = async () => {
     try {
-      const res  = await fetch(`http://localhost:4000/firms/my-firms`, {
+      const res  = await fetch(`https://backend-node-js-nfarm.onrender.com/firms/my-firms`, {
         headers: { token }
       });
       const data = await res.json();
@@ -108,7 +108,7 @@ const Firms = () => {
       }
       if (image) form.append('image', image);
 
-      const res  = await fetch('http://localhost:4000/firms/add-firm', {
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/firms/add-firm', {
         method:  'POST',
         headers: { token },
         body:    form,
@@ -134,7 +134,7 @@ const Firms = () => {
   const handleDelete = async (firmId) => {
     if (!window.confirm('Delete this firm?')) return;
     try {
-      const res = await fetch(`http://localhost:4000/firms/${firmId}`, {
+      const res = await fetch(`https://backend-node-js-nfarm.onrender.com/firms/${firmId}`, {
         method: 'DELETE', headers: { token }
       });
       if (res.ok) {
@@ -204,7 +204,7 @@ const Firms = () => {
               <div className="h-40 bg-green-100 relative">
                 {firm.image ? (
                   <img
-                    src={`http://localhost:4000/uploads/${firm.image}`}
+                    src={`https://backend-node-js-nfarm.onrender.com/uploads/${firm.image}`}
                     alt={firm.firmName}
                     className="w-full h-full object-cover"
                   />

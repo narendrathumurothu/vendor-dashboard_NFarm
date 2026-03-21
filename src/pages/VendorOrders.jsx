@@ -45,7 +45,7 @@ const VendorOrders = () => {
     setLoading(true);
     try {
       const res  = await fetch(
-        `http://localhost:4000/orders/vendor-orders/${vendorId}`,
+        `https://backend-node-js-nfarm.onrender.com/orders/vendor-orders/${vendorId}`,
         { headers: { token } }
       );
       const data = await res.json();
@@ -59,7 +59,7 @@ const VendorOrders = () => {
   const updateStatus = async (orderId, status) => {
     try {
       const res  = await fetch(
-        `http://localhost:4000/orders/update-status/${orderId}`,
+        `https://backend-node-js-nfarm.onrender.com/orders/update-status/${orderId}`,
         {
           method:  'PUT',
           headers: { token, 'Content-Type': 'application/json' },
@@ -235,7 +235,7 @@ const VendorOrders = () => {
                       <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
                         <div className="w-12 h-12 bg-white rounded-xl overflow-hidden flex-shrink-0">
                           {item.image ? (
-                            <img src={`http://localhost:4000/uploads/${item.image}`}
+                            <img src={`https://backend-node-js-nfarm.onrender.com/uploads/${item.image}`}
                               alt={item.productName} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-2xl">

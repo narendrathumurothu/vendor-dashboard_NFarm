@@ -22,7 +22,7 @@ const Navbar = ({ activePage, setActivePage }) => {
   useEffect(() => {
     const calculateUnread = async () => {
       try {
-        const res  = await fetch('http://localhost:4000/marketprice/getallprices');
+        const res  = await fetch('https://backend-node-js-nfarm.onrender.com/marketprice/getallprices');
         const data = await res.json();
         if (Array.isArray(data)) {
           const highDemand = data.filter(p => p.modalPrice >= 3000).length;

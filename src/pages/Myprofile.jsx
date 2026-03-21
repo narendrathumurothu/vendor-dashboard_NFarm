@@ -54,7 +54,7 @@ const Profile = () => {
   const fetchVendor = useCallback(async () => {
     try {
       const res  = await fetch(
-        `http://localhost:4000/vendors/single-vendor/${vendorId}`,
+        `https://backend-node-js-nfarm.onrender.com/vendors/single-vendor/${vendorId}`,
         { headers: { token } }
       );
       const data = await res.json();
@@ -76,7 +76,7 @@ const Profile = () => {
   // FIX: useCallback తో fetchFirms define చేశాం
   const fetchFirms = useCallback(async () => {
     try {
-      const res  = await fetch('http://localhost:4000/firms/my-firms', {
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/firms/my-firms', {
         headers: { token }
       });
       const data = await res.json();
@@ -113,7 +113,7 @@ const Profile = () => {
       if (photo) form.append('image', photo);
 
       const res  = await fetch(
-        `http://localhost:4000/vendors/update-vendor/${vendorId}`,
+        `https://backend-node-js-nfarm.onrender.com/vendors/update-vendor/${vendorId}`,
         { method: 'PUT', headers: { token }, body: form }
       );
       const data = await res.json();
@@ -141,7 +141,7 @@ const Profile = () => {
     }
     try {
       const res  = await fetch(
-        `http://localhost:4000/vendors/change-password/${vendorId}`,
+        `https://backend-node-js-nfarm.onrender.com/vendors/change-password/${vendorId}`,
         {
           method:  'POST',
           headers: { token, 'Content-Type': 'application/json' },

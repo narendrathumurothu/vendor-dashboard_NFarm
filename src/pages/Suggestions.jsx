@@ -28,7 +28,7 @@ const Suggestions = () => {
   const fetchPrices = async () => {
     setLoading(true);
     try {
-      const res  = await fetch('http://localhost:4000/marketprice/getallprices');
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/marketprice/getallprices');
       const data = await res.json();
       setPrices(Array.isArray(data) ? data : []);
     } catch (err) {

@@ -47,7 +47,7 @@ const Notifications = () => {
 
     // 2. Market price notifications from API
     try {
-      const res  = await fetch('http://localhost:4000/marketprice/getallprices');
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/marketprice/getallprices');
       const data = await res.json();
       setPrices(data);
 

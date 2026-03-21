@@ -86,7 +86,7 @@ const MyProducts = () => {
   const fetchMarketPrices = async () => {
     setPriceRefreshing(true);
     try {
-      const res  = await fetch('http://localhost:4000/marketprice/getallprices');
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/marketprice/getallprices');
       const data = await res.json();
 
       // Build map: { "tomato": 120, "potato": 30, ... }
@@ -121,7 +121,7 @@ const MyProducts = () => {
   // Fetch firms for the logged-in vendor
   const fetchFirms = async () => {
     try {
-      const res  = await fetch(`http://localhost:4000/firms/my-firms`, {
+      const res  = await fetch(`https://backend-node-js-nfarm.onrender.com/firms/my-firms`, {
         headers: { token }
       });
       const data = await res.json();
@@ -138,7 +138,7 @@ const MyProducts = () => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      let url = `http://localhost:4000/products/firm/${selectedFirm}?`;
+      let url = `https://backend-node-js-nfarm.onrender.com/products/firm/${selectedFirm}?`;
       if (search)   url += `search=${search}&`;
       if (category) url += `category=${category}&`;
       if (minPrice) url += `minPrice=${minPrice}&`;
@@ -153,7 +153,7 @@ const MyProducts = () => {
   const fetchGovPrice = async (name) => {
     if (name.length < 3) { setGovPrice(null); return; }
     try {
-      const res  = await fetch('http://localhost:4000/marketprice/getallprices');
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/marketprice/getallprices');
       const data = await res.json();
       const match = data.find(p => p.commodity?.toLowerCase().includes(name.toLowerCase()));
       setGovPrice(match ? match.modalPrice : null);
@@ -195,7 +195,7 @@ const MyProducts = () => {
       if (image) form.append('image', image);
 
       const res  = await fetch(
-        `http://localhost:4000/products/add/${formData.firmId}`,
+        `https://backend-node-js-nfarm.onrender.com/products/add/${formData.firmId}`,
         { method: 'POST', headers: { token }, body: form }
       );
       const data = await res.json();
@@ -223,7 +223,7 @@ const MyProducts = () => {
   const handleDelete = async (productId) => {
     if (!window.confirm('Delete?')) return;
     try {
-      const res = await fetch(`http://localhost:4000/products/${productId}`,
+      const res = await fetch(`https://backend-node-js-nfarm.onrender.com/products/${productId}`,
         { method: 'DELETE', headers: { token } });
       if (res.ok) {
         setSuccess('✅ Deleted!');
@@ -400,7 +400,7 @@ const MyProducts = () => {
                   style={{ background: 'rgb(229, 227, 102)' }}>
                   <div className="h-44 bg-green-50 relative">
                     {product.image ? (
-                      <img src={`http://localhost:4000/uploads/${product.image}`}
+                      <img src={`https://backend-node-js-nfarm.onrender.com/uploads/${product.image}`}
                         alt={product.productName} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-7xl">

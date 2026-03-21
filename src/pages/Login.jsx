@@ -79,7 +79,7 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true); setError(''); setSuccess('');
     try {
-      const res  = await fetch('http://localhost:4000/vendors/send-otp', {
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/send-otp', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: formData.username, email: formData.email, Password: formData.Password, PhoneNumber: formData.PhoneNumber, Address: formData.Address, FarmerName: formData.FarmerName, FarmLocation: formData.FarmLocation }),
       });
@@ -95,7 +95,7 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true); setError(''); setSuccess('');
     try {
-      const res  = await fetch('http://localhost:4000/vendors/register', {
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email, otp }),
       });
@@ -114,7 +114,7 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true); setError(''); setSuccess('');
     try {
-      const res  = await fetch('http://localhost:4000/vendors/login', {
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email, Password: formData.Password }),
       });
@@ -135,7 +135,7 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true); setError(''); setSuccess('');
     try {
-      const res  = await fetch('http://localhost:4000/vendors/forgot-password/send-otp', {
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/forgot-password/send-otp', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail }),
       });
@@ -151,7 +151,7 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     setLoading(true); setError(''); setSuccess('');
     try {
-      const res  = await fetch('http://localhost:4000/vendors/forgot-password/verify-otp', {
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/forgot-password/verify-otp', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail, otp: forgotOtp }),
       });
@@ -168,7 +168,7 @@ const Login = ({ onLogin }) => {
     if (newPassword !== confirmPassword) { setError('Passwords do not match!'); return; }
     setLoading(true); setError(''); setSuccess('');
     try {
-      const res  = await fetch('http://localhost:4000/vendors/forgot-password/reset', {
+      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/forgot-password/reset', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail, newPassword }),
       });
