@@ -55,13 +55,14 @@ const Navbar = ({ activePage, setActivePage }) => {
       {/* Right - Actions */}
       <div className="flex items-center gap-3">
 
-        {/* ✅ Language Switcher */}
+        {/* ✅ Language Switcher — fixed: variant instead of style */}
         <div className="hidden md:block">
-          <LanguageSwitcher style="navbar" />
+          <LanguageSwitcher variant="navbar" />
         </div>
 
         {/* Search */}
-        <div className={`flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 transition-all ${showSearch ? 'w-48' : 'w-10'}`}
+        <div
+          className={`flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 transition-all ${showSearch ? 'w-48' : 'w-10'}`}
           style={{ overflow: 'hidden' }}>
           <button onClick={() => setShowSearch(!showSearch)}>
             <Search size={18} className="text-gray-400 flex-shrink-0" />
@@ -89,7 +90,8 @@ const Navbar = ({ activePage, setActivePage }) => {
           className="relative p-2 bg-gray-50 rounded-xl hover:bg-green-50 transition-all">
           <Bell size={20} className="text-gray-600" />
           {unread > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold"
+            <span
+              className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold"
               style={{ minWidth: '18px', height: '18px', fontSize: '10px', padding: '0 4px' }}>
               {unread > 99 ? '99+' : unread}
             </span>
@@ -97,7 +99,8 @@ const Navbar = ({ activePage, setActivePage }) => {
         </button>
 
         {/* Profile */}
-        <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 cursor-pointer hover:bg-green-50 transition-all"
+        <div
+          className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 cursor-pointer hover:bg-green-50 transition-all"
           onClick={() => setActivePage('profile')}>
           <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
             <span className="text-white font-bold text-sm">

@@ -26,7 +26,8 @@ const Sidebar = ({ activePage, setActivePage }) => {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}
+    <div
+      className={`min-h-screen flex flex-col transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}
       style={{ background: 'linear-gradient(180deg, #14532d, #166534, #15803d)' }}>
 
       {/* Logo */}
@@ -53,10 +54,10 @@ const Sidebar = ({ activePage, setActivePage }) => {
         </button>
       </div>
 
-      {/* ✅ Language Switcher */}
+      {/* ✅ Language Switcher — fixed: variant instead of style */}
       {!collapsed && (
         <div className="px-3 pt-3">
-          <LanguageSwitcher style="sidebar" />
+          <LanguageSwitcher variant="sidebar" />
         </div>
       )}
 

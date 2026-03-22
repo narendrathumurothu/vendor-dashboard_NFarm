@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, MapPin, Edit, Trash2, X } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -30,8 +30,8 @@ const categoryEmojis = {
 };
 
 const Firms = () => {
-  const vendorId = localStorage.getItem('vendorId');
-  const token    = localStorage.getItem('token');
+  // ✅ Fix: removed unused vendorId
+  const token = localStorage.getItem('token');
 
   const [firms, setFirms]                       = useState([]);
   const [loading, setLoading]                   = useState(true);
@@ -42,19 +42,12 @@ const Firms = () => {
   const [mapCenter, setMapCenter]               = useState([20.5937, 78.9629]);
 
   const [formData, setFormData] = useState({
-    firmName: '',
-    area:     '',
-    city:     '',
-    state:    '',
-    region:   '',
-    category: 'Vegetables',
+    firmName: '', area: '', city: '', state: '', region: '', category: 'Vegetables',
   });
   const [image, setImage] = useState(null);
 
-  useEffect(() => { fetchFirms(); }, []);
-
-  // ✅ Fetch firms with pagination
-  const fetchFirms = async () => {
+  // ✅ Fix: wrapped in useCallback
+  const fetchFirms = useCallback(async () => {
     try {
       const res  = await fetch(`https://backend-node-js-nfarm.onrender.com/firms/my-firms`, {
         headers: { token }
@@ -70,7 +63,10 @@ const Firms = () => {
       console.log('Error:', err);
     }
     setLoading(false);
-  };
+  }, [token]);
+
+  // ✅ Fix: fetchFirms safely in dependency array
+  useEffect(() => { fetchFirms(); }, [fetchFirms]);
 
   const handleCitySearch = async (city) => {
     if (city.length < 3) return;
@@ -92,8 +88,7 @@ const Firms = () => {
 
   const handleAddFirm = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError(''); setSuccess('');
     try {
       const form = new FormData();
       form.append('firmName', formData.firmName);
@@ -109,9 +104,7 @@ const Firms = () => {
       if (image) form.append('image', image);
 
       const res  = await fetch('https://backend-node-js-nfarm.onrender.com/firms/add-firm', {
-        method:  'POST',
-        headers: { token },
-        body:    form,
+        method: 'POST', headers: { token }, body: form,
       });
       const data = await res.json();
 
@@ -130,7 +123,6 @@ const Firms = () => {
     }
   };
 
-  // ✅ Delete firm
   const handleDelete = async (firmId) => {
     if (!window.confirm('Delete this firm?')) return;
     try {
@@ -159,8 +151,7 @@ const Firms = () => {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all"
-        >
+          className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all">
           <Plus size={16} /> Add New Firm
         </button>
       </div>
@@ -188,10 +179,8 @@ const Firms = () => {
           <p className="text-6xl mb-4">🌱</p>
           <h3 className="text-xl font-bold text-gray-800">No Firms Yet!</h3>
           <p className="text-gray-500 mt-2 mb-4">Add your first farm to get started 🚜</p>
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-green-500 text-white px-6 py-2 rounded-xl text-sm font-medium"
-          >
+          <button onClick={() => setShowForm(true)}
+            className="bg-green-500 text-white px-6 py-2 rounded-xl text-sm font-medium">
             ➕ Add First Firm
           </button>
         </div>
@@ -199,15 +188,10 @@ const Firms = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {firms.map((firm, index) => (
             <div key={firm._id || index} className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-all">
-
-              {/* Firm Image */}
               <div className="h-40 bg-green-100 relative">
                 {firm.image ? (
-                  <img
-                    src={`https://backend-node-js-nfarm.onrender.com/uploads/${firm.image}`}
-                    alt={firm.firmName}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={`https://backend-node-js-nfarm.onrender.com/uploads/${firm.image}`}
+                    alt={firm.firmName} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-6xl">
                     {categoryEmojis[firm.category] || '🌾'}
@@ -218,7 +202,6 @@ const Firms = () => {
                 </span>
               </div>
 
-              {/* Mini Map */}
               {firm.latitude && firm.longitude && (
                 <div className="h-32">
                   <MapContainer
@@ -227,8 +210,7 @@ const Firms = () => {
                     style={{ height: '100%', width: '100%' }}
                     zoomControl={false}
                     dragging={false}
-                    scrollWheelZoom={false}
-                  >
+                    scrollWheelZoom={false}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <Marker position={[firm.latitude, firm.longitude]}>
                       <Popup>{firm.firmName} 📍</Popup>
@@ -237,7 +219,6 @@ const Firms = () => {
                 </div>
               )}
 
-              {/* Details */}
               <div className="p-4">
                 <h3 className="font-bold text-gray-800 text-lg">{firm.firmName}</h3>
                 <div className="flex items-center gap-1 text-gray-500 text-sm mt-1">
@@ -245,19 +226,14 @@ const Firms = () => {
                   <span>{firm.area}{firm.city ? `, ${firm.city}` : ''}</span>
                 </div>
                 {firm.region && (
-                  <div className="text-gray-400 text-xs mt-1">
-                    🗺️ Region: {firm.region}
-                  </div>
+                  <div className="text-gray-400 text-xs mt-1">🗺️ Region: {firm.region}</div>
                 )}
-
                 <div className="flex gap-2 mt-4">
                   <button className="flex-1 flex items-center justify-center gap-1 bg-blue-50 text-blue-600 py-2 rounded-xl text-sm hover:bg-blue-100 transition-all">
                     <Edit size={14} /> Edit
                   </button>
-                  <button
-                    onClick={() => handleDelete(firm._id)}
-                    className="flex-1 flex items-center justify-center gap-1 bg-red-50 text-red-600 py-2 rounded-xl text-sm hover:bg-red-100 transition-all"
-                  >
+                  <button onClick={() => handleDelete(firm._id)}
+                    className="flex-1 flex items-center justify-center gap-1 bg-red-50 text-red-600 py-2 rounded-xl text-sm hover:bg-red-100 transition-all">
                     <Trash2 size={14} /> Delete
                   </button>
                 </div>
@@ -271,7 +247,6 @@ const Firms = () => {
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-yellow-100 rounded-2xl p-6 w-full max-w-2xl shadow-2xl max-h-screen overflow-y-auto">
-
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-gray-800">🌱 Add New Firm</h3>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
@@ -280,78 +255,60 @@ const Firms = () => {
             </div>
 
             <form onSubmit={handleAddFirm} className="space-y-4">
-
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">🏡 Firm Name</label>
-                <input
-                  type="text"
-                  value={formData.firmName}
+                <input type="text" value={formData.firmName}
                   onChange={(e) => setFormData({ ...formData, firmName: e.target.value })}
                   placeholder="Enter firm name"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
-                  required
-                />
+                  required />
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">📍 Area</label>
-                <input
-                  type="text"
-                  value={formData.area}
+                <input type="text" value={formData.area}
                   onChange={(e) => setFormData({ ...formData, area: e.target.value })}
                   placeholder="Enter area/village name"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
-                  required
-                />
+                  required />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">🏙️ City</label>
-                  <input
-                    type="text"
-                    value={formData.city}
+                  <input type="text" value={formData.city}
                     onChange={(e) => {
                       setFormData({ ...formData, city: e.target.value });
                       handleCitySearch(e.target.value);
                     }}
                     placeholder="City"
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
-                    required
-                  />
+                    required />
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">🗾 State</label>
-                  <input
-                    type="text"
-                    value={formData.state}
+                  <input type="text" value={formData.state}
                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                     placeholder="State"
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
-                    required
-                  />
+                    required />
                 </div>
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">🗺️ Region</label>
-                <input
-                  type="text"
-                  value={formData.region}
+                <input type="text" value={formData.region}
                   onChange={(e) => setFormData({ ...formData, region: e.target.value })}
                   placeholder="e.g. South India, Deccan Plateau"
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
-                  required
-                />
+                  required />
               </div>
 
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">🌿 Category</label>
-                <select
-                  value={formData.category}
+                <select value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
-                >
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500">
                   <option value="Vegetables">🥦 Vegetables</option>
                   <option value="Fruits">🍎 Fruits</option>
                   <option value="Grains">🌾 Grains</option>
@@ -368,12 +325,9 @@ const Firms = () => {
                   📍 Select Farm Location (click on map)
                 </label>
                 <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: '250px' }}>
-                  <MapContainer
-                    center={mapCenter}
-                    zoom={10}
+                  <MapContainer center={mapCenter} zoom={10}
                     style={{ height: '100%', width: '100%' }}
-                    key={mapCenter.toString()}
-                  >
+                    key={mapCenter.toString()}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <LocationPicker onLocationSelect={setSelectedLocation} />
                     {selectedLocation && (
@@ -394,30 +348,21 @@ const Firms = () => {
 
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">🖼️ Farm Image</label>
-                <input
-                  type="file"
-                  accept="image/*"
+                <input type="file" accept="image/*"
                   onChange={(e) => setImage(e.target.files[0])}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm"
-                />
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" />
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl text-sm font-medium"
-                >
+                <button type="button" onClick={() => setShowForm(false)}
+                  className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl text-sm font-medium">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl text-sm font-medium"
-                >
+                <button type="submit"
+                  className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl text-sm font-medium">
                   🌱 Add Firm
                 </button>
               </div>
-
             </form>
           </div>
         </div>

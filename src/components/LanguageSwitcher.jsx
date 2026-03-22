@@ -1,13 +1,12 @@
 import React from 'react';
 
-const LanguageSwitcher = ({ style = 'sidebar' }) => {
+const LanguageSwitcher = ({ variant = 'sidebar' }) => {
 
   const changeLanguage = (lang) => {
     const date = new Date();
     date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
 
     if (lang === 'en') {
-      // English reset
       document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
       document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
       document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname}`;
@@ -29,8 +28,8 @@ const LanguageSwitcher = ({ style = 'sidebar' }) => {
     { code: 'hi', label: 'हि', flag: '🇮🇳' },
   ];
 
-  // Sidebar style
-  if (style === 'sidebar') {
+  // Sidebar variant
+  if (variant === 'sidebar') {
     return (
       <div className="flex gap-1 bg-green-900 rounded-xl p-1 w-full">
         {langs.map(lang => (
@@ -48,7 +47,7 @@ const LanguageSwitcher = ({ style = 'sidebar' }) => {
     );
   }
 
-  // Navbar style
+  // Navbar variant
   return (
     <div className="flex gap-1 bg-green-700 rounded-xl p-1">
       {langs.map(lang => (

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Bell, TrendingUp, TrendingDown, Package, LogIn, LogOut, Trash2, CheckCheck } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Bell, TrendingUp, TrendingDown, Package, LogIn, Trash2, CheckCheck } from 'lucide-react';
 
 const backgroundImages = [
   'https://images.pexels.com/photos/440731/pexels-photo-440731.jpeg',
@@ -15,9 +15,8 @@ const Notifications = () => {
   const [currentBg, setCurrentBg]         = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [filter, setFilter]               = useState('All');
-  const [prices, setPrices]               = useState([]);
+  // ✅ Fix: removed unused 'prices' state
 
-  // Background slideshow
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentBg(prev => (prev + 1) % backgroundImages.length);
@@ -25,14 +24,10 @@ const Notifications = () => {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    generateNotifications();
-  }, []);
-
-  const generateNotifications = async () => {
+  // ✅ Fix: wrapped in useCallback with vendorName dependency
+  const generateNotifications = useCallback(async () => {
     const notifs = [];
 
-    // 1. Login notification
     notifs.push({
       id: 1,
       type: 'login',
@@ -45,14 +40,11 @@ const Notifications = () => {
       read: false,
     });
 
-    // 2. Market price notifications from API
     try {
       const res  = await fetch('https://backend-node-js-nfarm.onrender.com/marketprice/getallprices');
       const data = await res.json();
-      setPrices(data);
 
       if (Array.isArray(data)) {
-        // High demand alerts
         const highDemand = data
           .filter(p => p.modalPrice >= 3000)
           .sort((a, b) => b.modalPrice - a.modalPrice)
@@ -72,7 +64,6 @@ const Notifications = () => {
           });
         });
 
-        // Low price warnings
         const lowPrice = data
           .filter(p => p.modalPrice < 500)
           .sort((a, b) => a.modalPrice - b.modalPrice)
@@ -96,7 +87,6 @@ const Notifications = () => {
       console.log('Market price error:', err);
     }
 
-    // 3. Product notifications from localStorage
     const lastProduct = localStorage.getItem('lastAddedProduct');
     if (lastProduct) {
       notifs.push({
@@ -124,7 +114,6 @@ const Notifications = () => {
       });
     }
 
-    // 4. Tips notification
     notifs.push({
       id: 40,
       type: 'tip',
@@ -138,16 +127,20 @@ const Notifications = () => {
     });
 
     setNotifications(notifs);
-  };
+  }, [vendorName]);
 
-  // Filter notifications
+  // ✅ Fix: generateNotifications safely in dependency array
+  useEffect(() => {
+    generateNotifications();
+  }, [generateNotifications]);
+
   const filtered = notifications.filter(n => {
-    if (filter === 'All')        return true;
-    if (filter === 'Unread')     return !n.read;
+    if (filter === 'All')         return true;
+    if (filter === 'Unread')      return !n.read;
     if (filter === 'High Demand') return n.type === 'high_demand';
-    if (filter === 'Low Price')  return n.type === 'low_price';
-    if (filter === 'Products')   return n.type === 'product';
-    if (filter === 'Login')      return n.type === 'login';
+    if (filter === 'Low Price')   return n.type === 'low_price';
+    if (filter === 'Products')    return n.type === 'product';
+    if (filter === 'Login')       return n.type === 'login';
     return true;
   });
 
@@ -171,7 +164,6 @@ const Notifications = () => {
     <div className="relative min-h-screen overflow-hidden"
       style={{ margin: '-24px', padding: '24px' }}>
 
-      {/* Background */}
       {backgroundImages.map((img, index) => (
         <div key={index} style={{
           position: 'absolute', inset: 0,
@@ -181,22 +173,15 @@ const Notifications = () => {
           transition: 'opacity 1.5s ease-in-out', zIndex: 0,
         }} />
       ))}
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1
-      }} />
+      <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1 }} />
 
-      {/* Content */}
       <div style={{ position: 'relative', zIndex: 2 }} className="space-y-5">
 
-        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-3xl font-bold text-white">🔔 Notifications</h2>
             <p style={{ color: '#86efac' }} className="text-sm mt-1">
-              {unreadCount > 0
-                ? `${unreadCount} unread notifications!`
-                : 'See all notifications!'}
+              {unreadCount > 0 ? `${unreadCount} unread notifications!` : 'See all notifications!'}
             </p>
           </div>
           {unreadCount > 0 && (
@@ -207,13 +192,12 @@ const Notifications = () => {
           )}
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: 'Total',      value: notifications.length,                         emoji: '🔔', color: '#3b82f6' },
-            { label: 'Unread',     value: unreadCount,                                  emoji: '🔴', color: '#ef4444' },
-            { label: 'High Demand', value: notifications.filter(n => n.type === 'high_demand').length, emoji: '🔥', color: '#dc2626' },
-            { label: 'Warnings',   value: notifications.filter(n => n.type === 'low_price').length,   emoji: '⚠️', color: '#ca8a04' },
+            { label: 'Total',       value: notifications.length,                                         emoji: '🔔', color: '#3b82f6' },
+            { label: 'Unread',      value: unreadCount,                                                  emoji: '🔴', color: '#ef4444' },
+            { label: 'High Demand', value: notifications.filter(n => n.type === 'high_demand').length,   emoji: '🔥', color: '#dc2626' },
+            { label: 'Warnings',    value: notifications.filter(n => n.type === 'low_price').length,     emoji: '⚠️', color: '#ca8a04' },
           ].map((stat, i) => (
             <div key={i} className="rounded-2xl p-4 text-center"
               style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}>
@@ -224,7 +208,6 @@ const Notifications = () => {
           ))}
         </div>
 
-        {/* Filter Tabs */}
         <div className="rounded-2xl p-4"
           style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)' }}>
           <div className="flex gap-2 flex-wrap">
@@ -246,10 +229,8 @@ const Notifications = () => {
           </div>
         </div>
 
-        {/* Notifications List */}
         {filtered.length === 0 ? (
-          <div className="rounded-2xl p-12 text-center"
-            style={{ background: 'rgba(255,255,255,0.85)' }}>
+          <div className="rounded-2xl p-12 text-center" style={{ background: 'rgba(255,255,255,0.85)' }}>
             <p className="text-6xl mb-4">🔔</p>
             <h3 className="text-xl font-bold text-gray-800">No Notifications!</h3>
             <p className="text-gray-500 mt-2">You're all caught up!</p>
@@ -257,41 +238,29 @@ const Notifications = () => {
         ) : (
           <div className="space-y-3">
             {filtered.map((notif) => (
-              <div key={notif.id}
-                onClick={() => markRead(notif.id)}
+              <div key={notif.id} onClick={() => markRead(notif.id)}
                 className="rounded-2xl p-4 cursor-pointer hover:shadow-md transition-all"
                 style={{
-                  background: notif.read
-                    ? 'rgba(255,255,255,0.85)'
-                    : 'rgba(255,255,255,0.97)',
+                  background: notif.read ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.97)',
                   backdropFilter: 'blur(10px)',
                   borderLeft: notif.read ? 'none' : `4px solid ${notif.color}`,
                 }}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-
-                    {/* Icon */}
                     <div className="p-2 rounded-xl flex-shrink-0"
                       style={{ background: notif.bg, color: notif.color }}>
                       {notif.icon}
                     </div>
-
-                    {/* Content */}
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-bold text-gray-800 text-sm">{notif.title}</p>
-                        {!notif.read && (
-                          <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
-                        )}
+                        {!notif.read && <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />}
                       </div>
                       <p className="text-gray-500 text-xs mt-1">{notif.message}</p>
                       <p className="text-gray-400 text-xs mt-1">🕐 {notif.time}</p>
                     </div>
                   </div>
-
-                  {/* Delete */}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id); }}
+                  <button onClick={(e) => { e.stopPropagation(); deleteNotification(notif.id); }}
                     className="text-gray-300 hover:text-red-400 transition-all flex-shrink-0">
                     <Trash2 size={16} />
                   </button>
@@ -301,7 +270,6 @@ const Notifications = () => {
           </div>
         )}
 
-        {/* Dots */}
         <div className="flex justify-center gap-2 pb-4">
           {backgroundImages.map((_, index) => (
             <div key={index} onClick={() => setCurrentBg(index)} style={{
@@ -312,7 +280,6 @@ const Notifications = () => {
             }} />
           ))}
         </div>
-
       </div>
     </div>
   );

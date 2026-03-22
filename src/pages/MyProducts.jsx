@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Filter, Edit, Trash2, X, Plus, RefreshCw } from 'lucide-react';
 
 const backgroundImages = [
@@ -16,8 +16,8 @@ const categoryEmojis = {
 };
 
 const MyProducts = () => {
-  const token    = localStorage.getItem('token');
-  const vendorId = localStorage.getItem('vendorId');
+  const token = localStorage.getItem('token');
+  // ✅ Fix: removed unused vendorId
 
   const [currentBg, setCurrentBg]         = useState(0);
   const [firms, setFirms]                 = useState([]);
@@ -38,7 +38,6 @@ const MyProducts = () => {
   const [image, setImage]                 = useState(null);
   const [imagePreview, setImagePreview]   = useState(null);
 
-  // ✅ NEW: Live market prices state
   const [marketPrices, setMarketPrices]         = useState({});
   const [priceLastUpdated, setPriceLastUpdated] = useState(null);
   const [priceRefreshing, setPriceRefreshing]   = useState(false);
@@ -58,68 +57,28 @@ const MyProducts = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ UPDATED: Fetch firms + market prices on mount, auto-refresh prices every 5 min
-  useEffect(() => {
-    fetchFirms();
-    fetchMarketPrices();
-
-    const priceInterval = setInterval(fetchMarketPrices, 5 * 60 * 1000);
-    return () => clearInterval(priceInterval);
-  }, []);
-
-  // ✅ NEW: Refresh prices when user comes back to this tab
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        fetchMarketPrices();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, []);
-
-  useEffect(() => {
-    if (selectedFirm) fetchProducts();
-  }, [selectedFirm, search, category, minPrice, maxPrice]);
-
-  // ✅ NEW: Fetch live market prices and build a lookup map
-  const fetchMarketPrices = async () => {
+  // ✅ Fix: wrapped fetchMarketPrices in useCallback
+  const fetchMarketPrices = useCallback(async () => {
     setPriceRefreshing(true);
     try {
       const res  = await fetch('https://backend-node-js-nfarm.onrender.com/marketprice/getallprices');
       const data = await res.json();
-
-      // Build map: { "tomato": 120, "potato": 30, ... }
       const priceMap = {};
       data.forEach(item => {
         if (item.commodity) {
           priceMap[item.commodity.toLowerCase().trim()] = item.modalPrice;
         }
       });
-
       setMarketPrices(priceMap);
       setPriceLastUpdated(new Date());
     } catch (err) {
       console.log('Market price fetch error:', err);
     }
     setPriceRefreshing(false);
-  };
+  }, []);
 
-  // ✅ NEW: Helper to get live price for a product
-  const getLivePrice = (productName) => {
-    if (!productName) return null;
-    const key = productName.toLowerCase().trim();
-    // Try exact match first
-    if (marketPrices[key] !== undefined) return marketPrices[key];
-    // Try partial match
-    const matchKey = Object.keys(marketPrices).find(k =>
-      k.includes(key) || key.includes(k)
-    );
-    return matchKey ? marketPrices[matchKey] : null;
-  };
-
-  // Fetch firms for the logged-in vendor
-  const fetchFirms = async () => {
+  // ✅ Fix: wrapped fetchFirms in useCallback
+  const fetchFirms = useCallback(async () => {
     try {
       const res  = await fetch(`https://backend-node-js-nfarm.onrender.com/firms/my-firms`, {
         headers: { token }
@@ -133,9 +92,11 @@ const MyProducts = () => {
     } catch (err) {
       console.log('Error:', err);
     }
-  };
+  }, [token]);
 
-  const fetchProducts = async () => {
+  // ✅ Fix: wrapped fetchProducts in useCallback
+  const fetchProducts = useCallback(async () => {
+    if (!selectedFirm) return;
     setLoading(true);
     try {
       let url = `https://backend-node-js-nfarm.onrender.com/products/firm/${selectedFirm}?`;
@@ -148,6 +109,36 @@ const MyProducts = () => {
       setProducts(Array.isArray(data) ? data : []);
     } catch (err) { console.log(err); }
     setLoading(false);
+  }, [selectedFirm, search, category, minPrice, maxPrice, token]);
+
+  // ✅ Fix: all useEffects now have proper dependencies
+  useEffect(() => {
+    fetchFirms();
+    fetchMarketPrices();
+    const priceInterval = setInterval(fetchMarketPrices, 5 * 60 * 1000);
+    return () => clearInterval(priceInterval);
+  }, [fetchFirms, fetchMarketPrices]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchMarketPrices();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [fetchMarketPrices]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  const getLivePrice = (productName) => {
+    if (!productName) return null;
+    const key = productName.toLowerCase().trim();
+    if (marketPrices[key] !== undefined) return marketPrices[key];
+    const matchKey = Object.keys(marketPrices).find(k =>
+      k.includes(key) || key.includes(k)
+    );
+    return matchKey ? marketPrices[matchKey] : null;
   };
 
   const fetchGovPrice = async (name) => {
@@ -211,7 +202,7 @@ const MyProducts = () => {
         }));
         setImage(null); setImagePreview(null); setGovPrice(null);
         fetchProducts();
-        fetchMarketPrices(); // ✅ Also refresh market prices after adding
+        fetchMarketPrices();
         setTimeout(() => setSuccess(''), 4000);
       } else {
         setError(data.message || data.error || 'Failed');
@@ -247,29 +238,19 @@ const MyProducts = () => {
           transition: 'opacity 1.5s ease-in-out', zIndex: 0,
         }} />
       ))}
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 1
-      }} />
+      <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 1 }} />
 
-      {/* Content */}
       <div style={{ position: 'relative', zIndex: 2 }} className="space-y-5">
 
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-3xl font-bold text-white">📦 My Products</h2>
-            <p style={{ color: '#86efac' }} className="text-sm mt-1">
-              🌾 {products.length} products found
-            </p>
+            <p style={{ color: '#86efac' }} className="text-sm mt-1">🌾 {products.length} products found</p>
           </div>
           <div className="flex gap-2">
-            {/* ✅ NEW: Manual price refresh button */}
-            <button
-              onClick={fetchMarketPrices}
-              title="Refresh live prices"
-              className="flex items-center gap-2 bg-white text-green-700 font-medium px-4 py-2 rounded-xl text-sm"
-            >
+            <button onClick={fetchMarketPrices} title="Refresh live prices"
+              className="flex items-center gap-2 bg-white text-green-700 font-medium px-4 py-2 rounded-xl text-sm">
               <RefreshCw size={16} className={priceRefreshing ? 'animate-spin' : ''} />
               {priceRefreshing ? 'Refreshing...' : 'Refresh Prices'}
             </button>
@@ -284,7 +265,6 @@ const MyProducts = () => {
           </div>
         </div>
 
-        {/* ✅ NEW: Live price last updated indicator */}
         {priceLastUpdated && (
           <div className="flex items-center gap-2 bg-green-900 bg-opacity-60 rounded-xl px-4 py-2 w-fit">
             <span className="text-green-400 text-xs">
@@ -294,7 +274,6 @@ const MyProducts = () => {
           </div>
         )}
 
-        {/* Alerts */}
         {success && (
           <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3">
             <p className="text-green-700 text-sm">{success}</p>
@@ -314,8 +293,7 @@ const MyProducts = () => {
               <p className="text-yellow-700 text-sm">⚠️ No firms found! Add a firm from the Firms page.</p>
             </div>
           ) : (
-            <select value={selectedFirm}
-              onChange={(e) => setSelectedFirm(e.target.value)}
+            <select value={selectedFirm} onChange={(e) => setSelectedFirm(e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500">
               {firms.map((firm, i) => (
                 <option key={i} value={firm._id}>🏭 {firm.firmName}</option>
@@ -328,14 +306,11 @@ const MyProducts = () => {
         <div className="rounded-2xl p-4 space-y-3" style={{ background: 'rgba(5, 123, 39, 0.84)' }}>
           <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3">
             <Search size={18} className="text-gray-400" />
-            <input type="text" value={search}
-              onChange={(e) => setSearch(e.target.value)}
+            <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder="Search products... 🔍"
               className="flex-1 text-sm outline-none text-gray-600" />
             {search && (
-              <button onClick={() => setSearch('')}>
-                <X size={16} className="text-gray-400" />
-              </button>
+              <button onClick={() => setSearch('')}><X size={16} className="text-gray-400" /></button>
             )}
           </div>
 
@@ -353,16 +328,13 @@ const MyProducts = () => {
                 <option value="Livestock">🐄 Livestock</option>
                 <option value="Others">🌱 Others</option>
               </select>
-              <input type="number" value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
+              <input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)}
                 placeholder="Min Price ₹"
                 className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" />
-              <input type="number" value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
+              <input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}
                 placeholder="Max Price ₹"
                 className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" />
-              <button
-                onClick={() => { setSearch(''); setCategory(''); setMinPrice(''); setMaxPrice(''); }}
+              <button onClick={() => { setSearch(''); setCategory(''); setMinPrice(''); setMaxPrice(''); }}
                 className="text-red-500 text-sm md:col-span-3">
                 🗑️ Clear Filters
               </button>
@@ -377,8 +349,7 @@ const MyProducts = () => {
             <p className="text-white">Loading products...</p>
           </div>
         ) : products.length === 0 ? (
-          <div className="rounded-2xl p-12 text-center"
-            style={{ background: 'rgba(255,255,255,0.92)' }}>
+          <div className="rounded-2xl p-12 text-center" style={{ background: 'rgba(255,255,255,0.92)' }}>
             <p className="text-6xl mb-4">📦</p>
             <h3 className="text-xl font-bold text-gray-800">No Products Found!</h3>
             <p className="text-gray-500 mt-2 mb-4">Add your first product!</p>
@@ -390,10 +361,9 @@ const MyProducts = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map((product, index) => {
-              // ✅ NEW: Get live price for this product
-              const livePrice = getLivePrice(product.productName);
+              const livePrice    = getLivePrice(product.productName);
               const displayPrice = livePrice ?? product.price;
-              const isLive = livePrice !== null;
+              const isLive       = livePrice !== null;
 
               return (
                 <div key={index} className="rounded-2xl overflow-hidden hover:shadow-lg transition-all"
@@ -410,8 +380,6 @@ const MyProducts = () => {
                     <span className="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
                       {categoryEmojis[product.category]} {product.category}
                     </span>
-
-                    {/* ✅ UPDATED: Price badge — shows live price if available */}
                     <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
                       <span className="bg-white text-green-700 font-bold text-sm px-3 py-1 rounded-full shadow">
                         ₹{displayPrice}
@@ -422,23 +390,18 @@ const MyProducts = () => {
                           Live
                         </span>
                       ) : (
-                        <span className="bg-gray-400 text-white text-xs px-2 py-0.5 rounded-full">
-                          Saved
-                        </span>
+                        <span className="bg-gray-400 text-white text-xs px-2 py-0.5 rounded-full">Saved</span>
                       )}
                     </div>
                   </div>
 
                   <div className="p-4">
                     <h3 className="font-bold text-gray-800 text-lg">{product.productName}</h3>
-
-                    {/* ✅ NEW: Show price comparison if live price differs from saved */}
                     {isLive && livePrice !== product.price && (
                       <div className="mt-1 bg-green-100 border border-green-300 rounded-lg px-3 py-1 text-xs text-green-700 flex items-center gap-1">
                         📊 Market: ₹{livePrice} &nbsp;|&nbsp; Saved: ₹{product.price}
                       </div>
                     )}
-
                     <div className="mt-2 space-y-1">
                       {product.farmingMethod && <p className="text-gray-500 text-xs">🚜 {product.farmingMethod}</p>}
                       {product.variety       && <p className="text-gray-500 text-xs">🌱 {product.variety}</p>}
@@ -488,18 +451,14 @@ const MyProducts = () => {
           style={{ backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 50 }}>
           <div className="w-full max-w-2xl rounded-2xl p-6 shadow-2xl bg-white"
             style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-gray-800">🌾 Add New Product</h3>
-              <button onClick={() => setShowAddModal(false)}
-                className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={22} />
               </button>
             </div>
 
             <form onSubmit={handleAddProduct} className="space-y-4">
-
-              {/* Firm Select */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">🏭 Select Firm</label>
                 <select value={formData.firmId}
@@ -513,7 +472,6 @@ const MyProducts = () => {
                 </select>
               </div>
 
-              {/* Product Name + Category */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">🌿 Product Name</label>
@@ -523,7 +481,7 @@ const MyProducts = () => {
                       fetchGovPrice(e.target.value);
                     }}
                     placeholder="e.g. Tomato" required
-                    className="w-half border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500" />
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500" />
                   {govPrice && <p className="text-green-600 text-xs mt-1">💡 Gov: ₹{govPrice}</p>}
                 </div>
                 <div>
@@ -543,7 +501,6 @@ const MyProducts = () => {
                 </div>
               </div>
 
-              {/* Price + Farming Method */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">💰 Price (₹)</label>
@@ -568,7 +525,6 @@ const MyProducts = () => {
                 </div>
               </div>
 
-              {/* Variety + Origin */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">🌱 Variety</label>
@@ -586,7 +542,6 @@ const MyProducts = () => {
                 </div>
               </div>
 
-              {/* Harvest Date + Shelf Life */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">📅 Harvest Date</label>
@@ -603,7 +558,6 @@ const MyProducts = () => {
                 </div>
               </div>
 
-              {/* Size + Seasonality */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm font-medium text-gray-700 mb-1 block">⚖️ Size & Weight</label>
@@ -626,7 +580,6 @@ const MyProducts = () => {
                 </div>
               </div>
 
-              {/* Livestock */}
               {formData.category === 'Livestock' && (
                 <div className="bg-orange-50 rounded-xl p-4 border border-orange-200">
                   <h4 className="font-medium text-orange-700 mb-3">🐄 Livestock Details</h4>
@@ -651,15 +604,13 @@ const MyProducts = () => {
                 </div>
               )}
 
-              {/* Image */}
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">🖼️ Product Image</label>
                 <input type="file" accept="image/*" onChange={handleImageChange}
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" required />
                 {imagePreview && (
                   <div className="mt-2 relative inline-block">
-                    <img src={imagePreview} alt="Preview"
-                      className="w-28 h-28 object-cover rounded-xl border" />
+                    <img src={imagePreview} alt="Preview" className="w-28 h-28 object-cover rounded-xl border" />
                     <button type="button"
                       onClick={() => { setImage(null); setImagePreview(null); }}
                       className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1">
@@ -669,7 +620,6 @@ const MyProducts = () => {
                 )}
               </div>
 
-              {/* Buttons */}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowAddModal(false)}
                   className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl text-sm">
@@ -680,7 +630,6 @@ const MyProducts = () => {
                   {addLoading ? '⏳ Adding...' : '🌾 Add Product'}
                 </button>
               </div>
-
             </form>
           </div>
         </div>

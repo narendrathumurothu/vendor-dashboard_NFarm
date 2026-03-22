@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CheckCircle, X, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 const backgroundImages = [
   'https://images.pexels.com/photos/440731/pexels-photo-440731.jpeg',
@@ -32,7 +32,6 @@ const VendorOrders = () => {
   const [success, setSuccess]     = useState('');
   const [error, setError]         = useState('');
 
-  // Background slideshow
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentBg(prev => (prev + 1) % backgroundImages.length);
@@ -40,7 +39,6 @@ const VendorOrders = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // FIX: useCallback తో fetchOrders
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
@@ -78,24 +76,21 @@ const VendorOrders = () => {
     } catch { setError('Server error!'); }
   };
 
-  const filtered = orders.filter(o =>
-    filter === 'All' ? true : o.status === filter
-  );
+  const filtered = orders.filter(o => filter === 'All' ? true : o.status === filter);
 
   const counts = {
-    All:              orders.length,
-    Pending:          orders.filter(o => o.status === 'Pending').length,
-    Confirmed:        orders.filter(o => o.status === 'Confirmed').length,
+    All:                orders.length,
+    Pending:            orders.filter(o => o.status === 'Pending').length,
+    Confirmed:          orders.filter(o => o.status === 'Confirmed').length,
     'Out for Delivery': orders.filter(o => o.status === 'Out for Delivery').length,
-    Delivered:        orders.filter(o => o.status === 'Delivered').length,
-    Cancelled:        orders.filter(o => o.status === 'Cancelled').length,
+    Delivered:          orders.filter(o => o.status === 'Delivered').length,
+    Cancelled:          orders.filter(o => o.status === 'Cancelled').length,
   };
 
   return (
     <div className="relative min-h-screen overflow-hidden"
       style={{ margin: '-24px', padding: '24px' }}>
 
-      {/* Background */}
       {backgroundImages.map((img, index) => (
         <div key={index} style={{
           position: 'absolute', inset: 0,
@@ -109,13 +104,10 @@ const VendorOrders = () => {
 
       <div style={{ position: 'relative', zIndex: 2 }} className="space-y-5">
 
-        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-3xl font-bold text-white">📦 Customer Orders</h2>
-            <p style={{ color: '#86efac' }} className="text-sm mt-1">
-              🌾 {orders.length} total orders
-            </p>
+            <p style={{ color: '#86efac' }} className="text-sm mt-1">🌾 {orders.length} total orders</p>
           </div>
           <button onClick={fetchOrders}
             className="flex items-center gap-2 bg-white text-green-700 px-4 py-2 rounded-xl text-sm font-medium">
@@ -123,13 +115,12 @@ const VendorOrders = () => {
           </button>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: 'Pending',          value: counts.Pending,            emoji: '⏳', color: '#ca3f04' },
-            { label: 'Confirmed',        value: counts.Confirmed,          emoji: '✅', color: '#2563eb' },
-            { label: 'Out for Delivery', value: counts['Out for Delivery'], emoji: '🚚', color: '#0284c7' },
-            { label: 'Delivered',        value: counts.Delivered,          emoji: '🎉', color: '#16a34a' },
+            { label: 'Pending',          value: counts.Pending,              emoji: '⏳', color: '#ca3f04' },
+            { label: 'Confirmed',        value: counts.Confirmed,            emoji: '✅', color: '#2563eb' },
+            { label: 'Out for Delivery', value: counts['Out for Delivery'],  emoji: '🚚', color: '#0284c7' },
+            { label: 'Delivered',        value: counts.Delivered,            emoji: '🎉', color: '#16a34a' },
           ].map((stat, i) => (
             <div key={i} className="rounded-2xl p-4 text-center"
               style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}>
@@ -140,19 +131,9 @@ const VendorOrders = () => {
           ))}
         </div>
 
-        {/* Alerts */}
-        {success && (
-          <div className="bg-green-50 rounded-xl px-4 py-3">
-            <p className="text-green-700 text-sm">{success}</p>
-          </div>
-        )}
-        {error && (
-          <div className="bg-red-50 rounded-xl px-4 py-3">
-            <p className="text-red-600 text-sm">❌ {error}</p>
-          </div>
-        )}
+        {success && <div className="bg-green-50 rounded-xl px-4 py-3"><p className="text-green-700 text-sm">{success}</p></div>}
+        {error   && <div className="bg-red-50 rounded-xl px-4 py-3"><p className="text-red-600 text-sm">❌ {error}</p></div>}
 
-        {/* Filter Tabs */}
         <div className="rounded-2xl p-3 flex gap-2 flex-wrap"
           style={{ background: 'rgba(212, 230, 54, 0.85)', backdropFilter: 'blur(10px)' }}>
           {['All', 'Pending', 'Confirmed', 'Out for Delivery', 'Delivered', 'Cancelled'].map(f => (
@@ -167,15 +148,13 @@ const VendorOrders = () => {
           ))}
         </div>
 
-        {/* Orders */}
         {loading ? (
           <div className="text-center py-12">
             <p className="text-6xl mb-2">⏳</p>
             <p className="text-white">Loading orders...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl p-12 text-center"
-            style={{ background: 'rgba(58, 218, 138, 0.85)' }}>
+          <div className="rounded-2xl p-12 text-center" style={{ background: 'rgba(58, 218, 138, 0.85)' }}>
             <p className="text-6xl mb-4">📦</p>
             <h3 className="text-xl font-bold text-gray-800">No Orders Yet</h3>
             <p className="text-gray-500 mt-2">When customers order your products it will show here.</p>
@@ -188,13 +167,9 @@ const VendorOrders = () => {
                 <div key={index} className="rounded-2xl overflow-hidden"
                   style={{ background: 'rgba(255,255,255,0.95)' }}>
 
-                  {/* Order Header */}
-                  <div className="flex items-center justify-between px-5 py-3"
-                    style={{ background: status.bg }}>
+                  <div className="flex items-center justify-between px-5 py-3" style={{ background: status.bg }}>
                     <div>
-                      <p className="font-bold text-gray-800">
-                        🧾 Order #{order._id.slice(-6).toUpperCase()}
-                      </p>
+                      <p className="font-bold text-gray-800">🧾 Order #{order._id.slice(-6).toUpperCase()}</p>
                       <p className="text-gray-500 text-xs mt-0.5">
                         📅 {new Date(order.createdAt).toLocaleDateString('en-IN', {
                           day: 'numeric', month: 'short', year: 'numeric',
@@ -208,9 +183,7 @@ const VendorOrders = () => {
                     </span>
                   </div>
 
-                  {/* Customer Info */}
-                  <div className="px-5 py-3 flex items-center gap-4"
-                    style={{ background: '#eff6ff' }}>
+                  <div className="px-5 py-3 flex items-center gap-4" style={{ background: '#eff6ff' }}>
                     <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-white font-bold text-sm">
                         {order.name?.charAt(0).toUpperCase()}
@@ -228,7 +201,6 @@ const VendorOrders = () => {
                     </div>
                   </div>
 
-                  {/* Order Items */}
                   <div className="px-5 py-3 space-y-2">
                     <p className="text-gray-500 text-xs font-medium">📦 Ordered Items:</p>
                     {order.items.map((item, i) => (
@@ -253,57 +225,42 @@ const VendorOrders = () => {
                     ))}
                   </div>
 
-                  {/* ─── Action Buttons ─── */}
-
-                  {/* Pending → Confirm or Cancel */}
                   {order.status === 'Confirmed' && (
-                    <div className="px-5 py-3 flex gap-2"
-                      style={{ borderTop: '1px solid #e5e7eb' }}>
-                      <button
-                        onClick={() => updateStatus(order._id, 'Out for Delivery')}
+                    <div className="px-5 py-3 flex gap-2" style={{ borderTop: '1px solid #e5e7eb' }}>
+                      <button onClick={() => updateStatus(order._id, 'Out for Delivery')}
                         className="flex-1 flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium transition-all">
                         🚚 Mark as Out for Delivery
                       </button>
                     </div>
                   )}
 
-                  {/* Out for Delivery — waiting for Admin to confirm Delivered */}
                   {order.status === 'Out for Delivery' && (
-                    <div className="px-5 py-3 bg-blue-50"
-                      style={{ borderTop: '1px solid #bae6fd' }}>
+                    <div className="px-5 py-3 bg-blue-50" style={{ borderTop: '1px solid #bae6fd' }}>
                       <p className="text-blue-600 text-sm text-center font-medium">
                         🚚 Out for Delivery — Waiting for Admin to confirm Delivered!
                       </p>
                     </div>
                   )}
 
-                  {/* Delivered */}
                   {order.status === 'Delivered' && (
-                    <div className="px-5 py-3 bg-green-50"
-                      style={{ borderTop: '1px solid #bbf7d0' }}>
+                    <div className="px-5 py-3 bg-green-50" style={{ borderTop: '1px solid #bbf7d0' }}>
                       <p className="text-green-600 text-sm text-center font-medium">
                         🎉 Order Successfully Delivered! Customer has been notified.
                       </p>
                     </div>
                   )}
 
-                  {/* Cancelled */}
                   {order.status === 'Cancelled' && (
-                    <div className="px-5 py-3 bg-red-50"
-                      style={{ borderTop: '1px solid #fecaca' }}>
-                      <p className="text-red-600 text-sm text-center font-medium">
-                        ❌ Order Cancelled.
-                      </p>
+                    <div className="px-5 py-3 bg-red-50" style={{ borderTop: '1px solid #fecaca' }}>
+                      <p className="text-red-600 text-sm text-center font-medium">❌ Order Cancelled.</p>
                     </div>
                   )}
-
                 </div>
               );
             })}
           </div>
         )}
 
-        {/* Dots */}
         <div className="flex justify-center gap-2 pb-4">
           {backgroundImages.map((_, index) => (
             <div key={index} onClick={() => setCurrentBg(index)} style={{
@@ -314,7 +271,6 @@ const VendorOrders = () => {
             }} />
           ))}
         </div>
-
       </div>
     </div>
   );
