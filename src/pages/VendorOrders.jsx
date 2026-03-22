@@ -32,6 +32,11 @@ const VendorOrders = () => {
   const [success, setSuccess]     = useState('');
   const [error, setError]         = useState('');
 
+  const [otpOrderId, setOtpOrderId] = useState(null);
+  const [otpInput, setOtpInput]     = useState('');
+  const [otpSent, setOtpSent]       = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentBg(prev => (prev + 1) % backgroundImages.length);
@@ -76,6 +81,68 @@ const VendorOrders = () => {
     } catch { setError('Server error!'); }
   };
 
+  const handleSendDeliveryOtp = async (orderId) => {
+    setOtpLoading(true);
+    setError(''); setSuccess('');
+    try {
+      const res  = await fetch(
+        `https://backend-node-js-nfarm.onrender.com/orders/send-delivery-otp/${orderId}`,
+        { method: 'POST', headers: { token } }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setOtpOrderId(orderId);
+        setOtpSent(true);
+        setOtpInput('');
+        setSuccess('✅ OTP sent to customer email!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(data.message || 'Failed to send OTP!');
+        setTimeout(() => setError(''), 3000);
+      }
+    } catch { setError('Server error!'); }
+    setOtpLoading(false);
+  };
+
+  const handleVerifyDeliveryOtp = async (orderId) => {
+    if (!otpInput || otpInput.length !== 6) {
+      setError('Please enter 6-digit OTP!');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    setOtpLoading(true);
+    setError(''); setSuccess('');
+    try {
+      const res  = await fetch(
+        `https://backend-node-js-nfarm.onrender.com/orders/verify-delivery-otp/${orderId}`,
+        {
+          method:  'POST',
+          headers: { token, 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ otp: otpInput }),
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        setSuccess('🎉 Order delivered successfully!');
+        setOtpOrderId(null);
+        setOtpSent(false);
+        setOtpInput('');
+        fetchOrders();
+        setTimeout(() => setSuccess(''), 4000);
+      } else {
+        setError(data.message || 'Invalid OTP!');
+        setTimeout(() => setError(''), 3000);
+      }
+    } catch { setError('Server error!'); }
+    setOtpLoading(false);
+  };
+
+  const handleCancelOtp = () => {
+    setOtpOrderId(null);
+    setOtpSent(false);
+    setOtpInput('');
+  };
+
   const filtered = orders.filter(o => filter === 'All' ? true : o.status === filter);
 
   const counts = {
@@ -117,10 +184,10 @@ const VendorOrders = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: 'Pending',          value: counts.Pending,              emoji: '⏳', color: '#ca3f04' },
-            { label: 'Confirmed',        value: counts.Confirmed,            emoji: '✅', color: '#2563eb' },
-            { label: 'Out for Delivery', value: counts['Out for Delivery'],  emoji: '🚚', color: '#0284c7' },
-            { label: 'Delivered',        value: counts.Delivered,            emoji: '🎉', color: '#16a34a' },
+            { label: 'Pending',          value: counts.Pending,             emoji: '⏳', color: '#ca3f04' },
+            { label: 'Confirmed',        value: counts.Confirmed,           emoji: '✅', color: '#2563eb' },
+            { label: 'Out for Delivery', value: counts['Out for Delivery'], emoji: '🚚', color: '#0284c7' },
+            { label: 'Delivered',        value: counts.Delivered,           emoji: '🎉', color: '#16a34a' },
           ].map((stat, i) => (
             <div key={i} className="rounded-2xl p-4 text-center"
               style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)' }}>
@@ -162,7 +229,9 @@ const VendorOrders = () => {
         ) : (
           <div className="space-y-4">
             {filtered.map((order, index) => {
-              const status = statusColors[order.status] || statusColors['Pending'];
+              const status     = statusColors[order.status] || statusColors['Pending'];
+              const isOtpOrder = otpOrderId === order._id;
+
               return (
                 <div key={index} className="rounded-2xl overflow-hidden"
                   style={{ background: 'rgba(255,255,255,0.95)' }}>
@@ -185,9 +254,7 @@ const VendorOrders = () => {
 
                   <div className="px-5 py-3 flex items-center gap-4" style={{ background: '#eff6ff' }}>
                     <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-bold text-sm">
-                        {order.name?.charAt(0).toUpperCase()}
-                      </span>
+                      <span className="text-white font-bold text-sm">{order.name?.charAt(0).toUpperCase()}</span>
                     </div>
                     <div className="flex-1">
                       <p className="font-bold text-gray-800 text-sm">👤 {order.name}</p>
@@ -225,6 +292,7 @@ const VendorOrders = () => {
                     ))}
                   </div>
 
+                  {/* Confirmed → Out for Delivery */}
                   {order.status === 'Confirmed' && (
                     <div className="px-5 py-3 flex gap-2" style={{ borderTop: '1px solid #e5e7eb' }}>
                       <button onClick={() => updateStatus(order._id, 'Out for Delivery')}
@@ -234,11 +302,58 @@ const VendorOrders = () => {
                     </div>
                   )}
 
+                  {/* ✅ Out for Delivery → Delivery OTP Flow */}
                   {order.status === 'Out for Delivery' && (
-                    <div className="px-5 py-3 bg-blue-50" style={{ borderTop: '1px solid #bae6fd' }}>
-                      <p className="text-blue-600 text-sm text-center font-medium">
-                        🚚 Out for Delivery — Waiting for Admin to confirm Delivered!
-                      </p>
+                    <div className="px-5 py-4 space-y-3" style={{ borderTop: '1px solid #e5e7eb' }}>
+
+                      {/* Step 1: Send OTP */}
+                      {!isOtpOrder && (
+                        <button
+                          onClick={() => handleSendDeliveryOtp(order._id)}
+                          disabled={otpLoading}
+                          className="w-full flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50">
+                          {otpLoading ? '⏳ Sending OTP...' : '📧 Send Delivery OTP to Customer'}
+                        </button>
+                      )}
+
+                      {/* Step 2: Enter OTP */}
+                      {isOtpOrder && otpSent && (
+                        <div className="space-y-3">
+                          <div className="bg-blue-50 rounded-xl px-4 py-3 text-center">
+                            <p className="text-blue-700 text-sm font-medium">📧 OTP sent to customer email!</p>
+                            <p className="text-blue-500 text-xs mt-1">Ask the customer for the OTP and enter it below</p>
+                          </div>
+
+                          <input
+                            type="text"
+                            value={otpInput}
+                            onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            placeholder="Enter 6-digit OTP"
+                            maxLength={6}
+                            className="w-full bg-gray-50 border-2 border-green-300 rounded-xl px-4 py-3 text-center text-2xl font-bold tracking-widest outline-none focus:border-green-500"
+                          />
+
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleVerifyDeliveryOtp(order._id)}
+                              disabled={otpLoading || otpInput.length !== 6}
+                              className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl text-sm font-bold disabled:opacity-50 transition-all">
+                              {otpLoading ? '⏳ Verifying...' : '✅ Verify & Mark Delivered'}
+                            </button>
+                            <button
+                              onClick={() => handleSendDeliveryOtp(order._id)}
+                              disabled={otpLoading}
+                              className="bg-gray-100 text-gray-600 px-4 py-3 rounded-xl text-sm font-medium">
+                              🔄 Resend
+                            </button>
+                            <button
+                              onClick={handleCancelOtp}
+                              className="bg-red-50 text-red-500 px-4 py-3 rounded-xl text-sm font-medium">
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -255,6 +370,7 @@ const VendorOrders = () => {
                       <p className="text-red-600 text-sm text-center font-medium">❌ Order Cancelled.</p>
                     </div>
                   )}
+
                 </div>
               );
             })}
@@ -271,6 +387,7 @@ const VendorOrders = () => {
             }} />
           ))}
         </div>
+
       </div>
     </div>
   );
