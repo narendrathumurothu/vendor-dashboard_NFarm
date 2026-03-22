@@ -3,20 +3,29 @@ import React from 'react';
 const LanguageSwitcher = ({ variant = 'sidebar' }) => {
 
   const changeLanguage = (lang) => {
-    const date = new Date();
-    date.setTime(date.getTime() + (365 * 24 * 60 * 60 * 1000));
+    localStorage.setItem('language', lang);
+
+    const hostname = window.location.hostname;
+    const expiry   = new Date();
+    expiry.setTime(expiry.getTime() + (365 * 24 * 60 * 60 * 1000));
 
     if (lang === 'en') {
+      // ✅ Fix: clear googtrans cookie completely
       document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
-      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`;
-      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname}`;
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${hostname}`;
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${hostname}`;
+      // ✅ Fix: set to English explicitly
+      document.cookie = `googtrans=/en/en; expires=${expiry.toUTCString()}; path=/`;
+      document.cookie = `googtrans=/en/en; expires=${expiry.toUTCString()}; path=/; domain=${hostname}`;
+      document.cookie = `googtrans=/en/en; expires=${expiry.toUTCString()}; path=/; domain=.${hostname}`;
     } else {
-      document.cookie = `googtrans=/en/${lang}; expires=${date.toUTCString()}; path=/`;
-      document.cookie = `googtrans=/en/${lang}; expires=${date.toUTCString()}; path=/; domain=${window.location.hostname}`;
-      document.cookie = `googtrans=/en/${lang}; expires=${date.toUTCString()}; path=/; domain=.${window.location.hostname}`;
+      document.cookie = `googtrans=/en/${lang}; expires=${expiry.toUTCString()}; path=/`;
+      document.cookie = `googtrans=/en/${lang}; expires=${expiry.toUTCString()}; path=/; domain=${hostname}`;
+      document.cookie = `googtrans=/en/${lang}; expires=${expiry.toUTCString()}; path=/; domain=.${hostname}`;
     }
 
-    localStorage.setItem('language', lang);
+    // ✅ Fix: always reload page — this is the only reliable way
+    // to apply/remove Google Translate properly
     window.location.reload();
   };
 

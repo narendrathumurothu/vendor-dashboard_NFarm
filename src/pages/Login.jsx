@@ -9,6 +9,21 @@ const backgroundImages = [
   'https://images.pexels.com/photos/533360/pexels-photo-533360.jpeg',
 ];
 
+const BASE_URL = 'https://backend-node-js-nfarm.onrender.com';
+
+// ✅ Smart fetch — auto retries once if server is waking up
+const fetchWithRetry = async (url, options, onWaking) => {
+  try {
+    const res = await fetch(url, options);
+    return res;
+  } catch (err) {
+    // First attempt failed — server might be sleeping, wait and retry
+    onWaking('🌐 Server is starting up, please wait...');
+    await new Promise(resolve => setTimeout(resolve, 8000)); // wait 8 seconds
+    return await fetch(url, options); // retry
+  }
+};
+
 const Login = ({ onLogin }) => {
   const [currentBg, setCurrentBg]       = useState(0);
   const [isRegister, setIsRegister]     = useState(false);
@@ -16,6 +31,7 @@ const Login = ({ onLogin }) => {
   const [loading, setLoading]           = useState(false);
   const [error, setError]               = useState('');
   const [success, setSuccess]           = useState('');
+  const [wakingUp, setWakingUp]         = useState(''); // ✅ server wake-up message
   const [selectedLang, setSelectedLang] = useState(localStorage.getItem('language') || 'en');
 
   // Register OTP States
@@ -25,7 +41,7 @@ const Login = ({ onLogin }) => {
 
   // Forgot Password States
   const [isForgot, setIsForgot]           = useState(false);
-  const [forgotStep, setForgotStep]       = useState(1); // 1=email, 2=otp, 3=newpass
+  const [forgotStep, setForgotStep]       = useState(1);
   const [forgotEmail, setForgotEmail]     = useState('');
   const [forgotOtp, setForgotOtp]         = useState('');
   const [newPassword, setNewPassword]     = useState('');
@@ -77,88 +93,150 @@ const Login = ({ onLogin }) => {
   // ─── Register: Send OTP ───────────────────────────────────────────────────
   const handleSendOTP = async (e) => {
     e.preventDefault();
-    setLoading(true); setError(''); setSuccess('');
+    setLoading(true); setError(''); setSuccess(''); setWakingUp('');
     try {
-      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/send-otp', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: formData.username, email: formData.email, Password: formData.Password, PhoneNumber: formData.PhoneNumber, Address: formData.Address, FarmerName: formData.FarmerName, FarmLocation: formData.FarmLocation }),
-      });
+      const res  = await fetchWithRetry(
+        `${BASE_URL}/vendors/send-otp`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username:    formData.username,
+            email:       formData.email,
+            Password:    formData.Password,
+            PhoneNumber: formData.PhoneNumber,
+            Address:     formData.Address,
+            FarmerName:  formData.FarmerName,
+            FarmLocation: formData.FarmLocation,
+          }),
+        },
+        setWakingUp
+      );
       const data = await res.json();
-      if (res.ok) { setOtpSent(true); setTimer(600); setSuccess(`✅ OTP sent to ${formData.email}!`); }
-      else setError(data.message || 'Failed to send OTP!');
-    } catch { setError('Server not connected!'); }
+      setWakingUp('');
+      if (res.ok) {
+        setOtpSent(true);
+        setTimer(600);
+        setSuccess(`✅ OTP sent to ${formData.email}!`);
+      } else {
+        setError(data.message || 'Failed to send OTP!');
+      }
+    } catch {
+      setWakingUp('');
+      setError('Server not connected! Please try again.');
+    }
     setLoading(false);
   };
 
   // ─── Register: Verify OTP ─────────────────────────────────────────────────
   const handleVerifyOTP = async (e) => {
     e.preventDefault();
-    setLoading(true); setError(''); setSuccess('');
+    setLoading(true); setError(''); setSuccess(''); setWakingUp('');
     try {
-      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/register', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, otp }),
-      });
+      const res  = await fetchWithRetry(
+        `${BASE_URL}/vendors/register`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, otp }),
+        },
+        setWakingUp
+      );
       const data = await res.json();
+      setWakingUp('');
       if (res.ok) {
         setSuccess('✅ Registered successfully! Please login.');
         setIsRegister(false); setOtpSent(false); setOtp('');
         setFormData({ username: '', email: '', Password: '', PhoneNumber: '', Address: '', FarmerName: '', FarmLocation: '' });
-      } else setError(data.message || 'Invalid OTP!');
-    } catch { setError('Server not connected!'); }
+      } else {
+        setError(data.message || 'Invalid OTP!');
+      }
+    } catch {
+      setWakingUp('');
+      setError('Server not connected! Please try again.');
+    }
     setLoading(false);
   };
 
   // ─── Login ────────────────────────────────────────────────────────────────
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true); setError(''); setSuccess('');
+    setLoading(true); setError(''); setSuccess(''); setWakingUp('');
     try {
-      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/login', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, Password: formData.Password }),
-      });
+      const res  = await fetchWithRetry(
+        `${BASE_URL}/vendors/login`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email, Password: formData.Password }),
+        },
+        setWakingUp
+      );
       const data = await res.json();
+      setWakingUp('');
       if (res.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('vendorId', data.VendorId);
+        localStorage.setItem('token',      data.token);
+        localStorage.setItem('vendorId',   data.VendorId);
         localStorage.setItem('vendorName', data.username);
-        localStorage.setItem('language', selectedLang);
+        localStorage.setItem('language',   selectedLang);
         onLogin();
-      } else setError(data.message || 'Something went wrong!');
-    } catch { setError('Server not connected!'); }
+      } else {
+        setError(data.message || 'Something went wrong!');
+      }
+    } catch {
+      setWakingUp('');
+      setError('Server not connected! Please try again.');
+    }
     setLoading(false);
   };
 
   // ─── Forgot Password Step 1: Send OTP ────────────────────────────────────
   const handleForgotSendOTP = async (e) => {
     e.preventDefault();
-    setLoading(true); setError(''); setSuccess('');
+    setLoading(true); setError(''); setSuccess(''); setWakingUp('');
     try {
-      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/forgot-password/send-otp', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: forgotEmail }),
-      });
+      const res  = await fetchWithRetry(
+        `${BASE_URL}/vendors/forgot-password/send-otp`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: forgotEmail }),
+        },
+        setWakingUp
+      );
       const data = await res.json();
+      setWakingUp('');
       if (res.ok) { setForgotStep(2); setForgotTimer(600); setSuccess(`✅ OTP sent to ${forgotEmail}!`); }
       else setError(data.message || 'Failed to send OTP!');
-    } catch { setError('Server not connected!'); }
+    } catch {
+      setWakingUp('');
+      setError('Server not connected! Please try again.');
+    }
     setLoading(false);
   };
 
   // ─── Forgot Password Step 2: Verify OTP ──────────────────────────────────
   const handleForgotVerifyOTP = async (e) => {
     e.preventDefault();
-    setLoading(true); setError(''); setSuccess('');
+    setLoading(true); setError(''); setSuccess(''); setWakingUp('');
     try {
-      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/forgot-password/verify-otp', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: forgotEmail, otp: forgotOtp }),
-      });
+      const res  = await fetchWithRetry(
+        `${BASE_URL}/vendors/forgot-password/verify-otp`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: forgotEmail, otp: forgotOtp }),
+        },
+        setWakingUp
+      );
       const data = await res.json();
+      setWakingUp('');
       if (res.ok) { setForgotStep(3); setSuccess('✅ OTP verified!'); }
       else setError(data.message || 'Invalid OTP!');
-    } catch { setError('Server not connected!'); }
+    } catch {
+      setWakingUp('');
+      setError('Server not connected! Please try again.');
+    }
     setLoading(false);
   };
 
@@ -166,19 +244,28 @@ const Login = ({ onLogin }) => {
   const handleForgotReset = async (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) { setError('Passwords do not match!'); return; }
-    setLoading(true); setError(''); setSuccess('');
+    setLoading(true); setError(''); setSuccess(''); setWakingUp('');
     try {
-      const res  = await fetch('https://backend-node-js-nfarm.onrender.com/vendors/forgot-password/reset', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: forgotEmail, newPassword }),
-      });
+      const res  = await fetchWithRetry(
+        `${BASE_URL}/vendors/forgot-password/reset`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: forgotEmail, newPassword }),
+        },
+        setWakingUp
+      );
       const data = await res.json();
+      setWakingUp('');
       if (res.ok) {
         setSuccess('✅ Password reset successfully! Please login.');
         setIsForgot(false); setForgotStep(1);
         setForgotEmail(''); setForgotOtp(''); setNewPassword(''); setConfirmPassword('');
       } else setError(data.message || 'Failed to reset password!');
-    } catch { setError('Server not connected!'); }
+    } catch {
+      setWakingUp('');
+      setError('Server not connected! Please try again.');
+    }
     setLoading(false);
   };
 
@@ -231,6 +318,13 @@ const Login = ({ onLogin }) => {
           </div>
         </div>
 
+        {/* ✅ Server waking up message */}
+        {wakingUp && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-3">
+            <p className="text-yellow-700 text-sm text-center">⏳ {wakingUp}</p>
+          </div>
+        )}
+
         {/* Alerts */}
         {error   && <div className="bg-red-50 rounded-xl px-4 py-3 mb-3"><p className="text-red-600 text-sm">❌ {error}</p></div>}
         {success && <div className="bg-green-50 rounded-xl px-4 py-3 mb-3"><p className="text-green-600 text-sm">{success}</p></div>}
@@ -248,7 +342,6 @@ const Login = ({ onLogin }) => {
               </p>
             </div>
 
-            {/* Step indicators */}
             <div className="flex items-center justify-center gap-2 mb-4">
               {[1, 2, 3].map(step => (
                 <div key={step} className="flex items-center gap-2">
@@ -264,7 +357,6 @@ const Login = ({ onLogin }) => {
               ))}
             </div>
 
-            {/* Step 1: Email */}
             {forgotStep === 1 && (
               <form onSubmit={handleForgotSendOTP} className="space-y-3">
                 <div>
@@ -280,7 +372,6 @@ const Login = ({ onLogin }) => {
               </form>
             )}
 
-            {/* Step 2: OTP */}
             {forgotStep === 2 && (
               <form onSubmit={handleForgotVerifyOTP} className="space-y-3">
                 <div className="text-center bg-green-50 rounded-xl p-3">
@@ -301,7 +392,6 @@ const Login = ({ onLogin }) => {
               </form>
             )}
 
-            {/* Step 3: New Password */}
             {forgotStep === 3 && (
               <form onSubmit={handleForgotReset} className="space-y-3">
                 <div>
@@ -358,7 +448,7 @@ const Login = ({ onLogin }) => {
                   <p className="font-bold text-gray-800">OTP Sent!</p>
                   <p className="text-gray-500 text-sm mt-1">Check: <strong>{formData.email}</strong></p>
                   {timer > 0 && <p className="text-green-600 text-sm font-bold mt-2">⏰ {formatTimer(timer)}</p>}
-                  {timer === 0 && <p className="text-red-500 text-sm mt-2">⚠️ OTP expired!</p>}
+                  {timer === 0 && <p className="text-red-500 text-sm mt-2">⚠️ OTP expired! Go back and resend.</p>}
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 mb-1 block">🔐 Enter OTP</label>
@@ -379,12 +469,12 @@ const Login = ({ onLogin }) => {
             ) : isRegister ? (
               <form onSubmit={handleSendOTP} className="space-y-3">
                 {[
-                  { label: `👤 ${L.username}`, key: 'username', type: 'text' },
-                  { label: `📱 ${L.phone}`, key: 'PhoneNumber', type: 'text' },
-                  { label: `📍 ${L.address}`, key: 'Address', type: 'text' },
-                  { label: `🧑‍🌾 ${L.farmerName}`, key: 'FarmerName', type: 'text' },
-                  { label: `🌾 ${L.farmLoc}`, key: 'FarmLocation', type: 'text' },
-                  { label: `📧 ${L.email}`, key: 'email', type: 'email' },
+                  { label: `👤 ${L.username}`,   key: 'username',    type: 'text'  },
+                  { label: `📱 ${L.phone}`,       key: 'PhoneNumber', type: 'text'  },
+                  { label: `📍 ${L.address}`,     key: 'Address',     type: 'text'  },
+                  { label: `🧑‍🌾 ${L.farmerName}`, key: 'FarmerName',  type: 'text'  },
+                  { label: `🌾 ${L.farmLoc}`,     key: 'FarmLocation',type: 'text'  },
+                  { label: `📧 ${L.email}`,       key: 'email',       type: 'email' },
                 ].map(field => (
                   <div key={field.key}>
                     <label className="text-xs font-medium text-gray-600 mb-1 block">{field.label}</label>
@@ -429,15 +519,12 @@ const Login = ({ onLogin }) => {
                     </button>
                   </div>
                 </div>
-
-                {/* Forgot Password Link */}
                 <div className="text-right">
                   <button type="button" onClick={() => { setIsForgot(true); setError(''); setSuccess(''); }}
                     className="text-green-600 text-xs font-medium hover:underline">
                     🔐 Forgot Password?
                   </button>
                 </div>
-
                 <button type="submit" disabled={loading}
                   className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl text-sm font-bold disabled:opacity-50">
                   {loading ? '⏳...' : `🔐 ${L.loginBtn}`}
