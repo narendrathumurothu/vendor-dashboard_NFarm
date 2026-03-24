@@ -274,7 +274,7 @@ const Login = ({ onLogin }) => {
               <div className="space-y-4">
                 <div className="text-center bg-green-50 rounded-2xl p-5">
                   <p className="font-bold text-gray-800">Verify Identity</p>
-                  <p className="text-gray-500 text-xs">Code sent to: {formData.email}</p>
+                  <p className="text-gray-500 text-xs">Code sent to: {formData.email} please check your spam box</p>
                 </div>
                 <input type="text" value={otp} onChange={e => setOtp(e.target.value)}
                   placeholder="Enter 6-digit OTP" maxLength={6}
