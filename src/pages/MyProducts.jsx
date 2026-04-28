@@ -31,7 +31,9 @@ const MyProducts = () => {
   const [error, setError]                 = useState('');
   const [success, setSuccess]             = useState('');
   const [showFilters, setShowFilters]     = useState(false);
-  const [showAddModal, setShowAddModal]   = useState(false);
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [isEditing, setIsEditing]         = useState(false);
+  const [editProductId, setEditProductId] = useState(null);
 
   const [addLoading, setAddLoading]       = useState(false);
   const [govPrice, setGovPrice]           = useState(null);
@@ -161,7 +163,46 @@ const MyProducts = () => {
     }
   };
 
-  const handleAddProduct = async (e) => {
+  const handleEditClick = (product) => {
+    setFormData({
+      firmId: product.firm || '',
+      productName: product.productName || '',
+      category: product.category || 'Vegetables',
+      price: product.price || '',
+      farmingMethod: product.farmingMethod || '',
+      variety: product.variety || '',
+      origin: product.origin || '',
+      harvestDate: product.harvestDate ? product.harvestDate.split('T')[0] : '',
+      shelflife: product.shelflife || '',
+      sizeAndWeight: product.sizeAndWeight || '',
+      seasonality: product.seasonality || '',
+      age: product.livestockDetails?.age || '',
+      breed: product.livestockDetails?.breed || '',
+      gender: product.livestockDetails?.gender || '',
+      milkyield: product.livestockDetails?.milkyield || '',
+    });
+    setEditProductId(product._id);
+    setIsEditing(true);
+    setImage(null);
+    setImagePreview(product.image ? `https://backend-node-js-nfarm.onrender.com/uploads/${product.image}` : null);
+    setShowProductModal(true);
+  };
+
+  const openAddModal = () => {
+    setIsEditing(false);
+    setEditProductId(null);
+    setFormData({
+      firmId: selectedFirm || '', productName: '', category: 'Vegetables',
+      price: '', farmingMethod: '', variety: '', origin: '',
+      harvestDate: '', shelflife: '', sizeAndWeight: '',
+      seasonality: '', age: '', breed: '', gender: '', milkyield: '',
+    });
+    setImage(null);
+    setImagePreview(null);
+    setShowProductModal(true);
+  };
+
+  const handleProductSubmit = async (e) => {
     e.preventDefault();
     setAddLoading(true);
     setError(''); setSuccess('');
@@ -185,15 +226,22 @@ const MyProducts = () => {
       }
       if (image) form.append('image', image);
 
-      const res  = await fetch(
-        `https://backend-node-js-nfarm.onrender.com/products/add/${formData.firmId}`,
-        { method: 'POST', headers: { token }, body: form }
-      );
-      const data = await res.json();
+      let res, data;
+      if (isEditing) {
+        res = await fetch(`https://backend-node-js-nfarm.onrender.com/products/update/${editProductId}`, {
+          method: 'PUT', headers: { token }, body: form
+        });
+      } else {
+        res = await fetch(`https://backend-node-js-nfarm.onrender.com/products/add/${formData.firmId}`, {
+          method: 'POST', headers: { token }, body: form
+        });
+      }
+      
+      data = await res.json();
 
       if (res.ok) {
-        setSuccess(`✅ Product added! (${data.priceSource})`);
-        setShowAddModal(false);
+        setSuccess(isEditing ? '✅ Product updated successfully!' : `✅ Product added! (${data.priceSource || 'Manual'})`);
+        setShowProductModal(false);
         setFormData(prev => ({
           ...prev, productName: '', price: '', farmingMethod: '',
           variety: '', origin: '', harvestDate: '', shelflife: '',
@@ -202,7 +250,7 @@ const MyProducts = () => {
         }));
         setImage(null); setImagePreview(null); setGovPrice(null);
         fetchProducts();
-        fetchMarketPrices();
+        if (!isEditing) fetchMarketPrices();
         setTimeout(() => setSuccess(''), 4000);
       } else {
         setError(data.message || data.error || 'Failed');
@@ -258,7 +306,7 @@ const MyProducts = () => {
               className="flex items-center gap-2 bg-white text-green-700 font-medium px-4 py-2 rounded-xl text-sm">
               <Filter size={16} /> Filters
             </button>
-            <button onClick={() => setShowAddModal(true)}
+            <button onClick={openAddModal}
               className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-medium px-4 py-2 rounded-xl text-sm">
               <Plus size={16} /> Add Product
             </button>
@@ -353,7 +401,7 @@ const MyProducts = () => {
             <p className="text-6xl mb-4">📦</p>
             <h3 className="text-xl font-bold text-gray-800">No Products Found!</h3>
             <p className="text-gray-500 mt-2 mb-4">Add your first product!</p>
-            <button onClick={() => setShowAddModal(true)}
+            <button onClick={openAddModal}
               className="bg-green-500 text-white px-6 py-2 rounded-xl text-sm font-medium">
               ➕ Add First Product
             </button>
@@ -417,7 +465,7 @@ const MyProducts = () => {
                       </div>
                     )}
                     <div className="flex gap-2 mt-4">
-                      <button className="flex-1 flex items-center justify-center gap-1 bg-blue-50 text-blue-600 py-2 rounded-xl text-sm hover:bg-blue-100">
+                      <button onClick={() => handleEditClick(product)} className="flex-1 flex items-center justify-center gap-1 bg-blue-50 text-blue-600 py-2 rounded-xl text-sm hover:bg-blue-100">
                         <Edit size={14} /> Edit
                       </button>
                       <button onClick={() => handleDelete(product._id)}
@@ -445,32 +493,34 @@ const MyProducts = () => {
         </div>
       </div>
 
-      {/* ADD PRODUCT MODAL */}
-      {showAddModal && (
+      {/* PRODUCT MODAL */}
+      {showProductModal && (
         <div className="fixed inset-0 flex items-center justify-center p-4"
           style={{ backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 50 }}>
           <div className="w-full max-w-2xl rounded-2xl p-6 shadow-2xl bg-white"
             style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-gray-800">🌾 Add New Product</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
+              <h3 className="text-xl font-bold text-gray-800">🌾 {isEditing ? 'Edit Product' : 'Add New Product'}</h3>
+              <button onClick={() => setShowProductModal(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={22} />
               </button>
             </div>
 
-            <form onSubmit={handleAddProduct} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-1 block">🏭 Select Firm</label>
-                <select value={formData.firmId}
-                  onChange={(e) => setFormData({ ...formData, firmId: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
-                  required>
-                  <option value="">-- Select firm --</option>
-                  {firms.map((firm, i) => (
-                    <option key={i} value={firm._id}>🏭 {firm.firmName}</option>
-                  ))}
-                </select>
-              </div>
+            <form onSubmit={handleProductSubmit} className="space-y-4">
+              {!isEditing && (
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">🏭 Select Firm</label>
+                  <select value={formData.firmId}
+                    onChange={(e) => setFormData({ ...formData, firmId: e.target.value })}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-green-500"
+                    required>
+                    <option value="">-- Select firm --</option>
+                    {firms.map((firm, i) => (
+                      <option key={i} value={firm._id}>🏭 {firm.firmName}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -607,7 +657,7 @@ const MyProducts = () => {
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-1 block">🖼️ Product Image</label>
                 <input type="file" accept="image/*" onChange={handleImageChange}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" required />
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm" {...(isEditing ? {} : { required: true })} />
                 {imagePreview && (
                   <div className="mt-2 relative inline-block">
                     <img src={imagePreview} alt="Preview" className="w-28 h-28 object-cover rounded-xl border" />
@@ -621,13 +671,13 @@ const MyProducts = () => {
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowAddModal(false)}
+                <button type="button" onClick={() => setShowProductModal(false)}
                   className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl text-sm">
                   Cancel
                 </button>
-                <button type="submit" disabled={addLoading || firms.length === 0}
+                <button type="submit" disabled={addLoading || (!isEditing && firms.length === 0)}
                   className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl text-sm font-medium disabled:opacity-50">
-                  {addLoading ? '⏳ Adding...' : '🌾 Add Product'}
+                  {addLoading ? '⏳ Saving...' : (isEditing ? '💾 Update Product' : '🌾 Add Product')}
                 </button>
               </div>
             </form>

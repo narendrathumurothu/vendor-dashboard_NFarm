@@ -167,6 +167,60 @@ const Login = ({ onLogin }) => {
     setLoading(false);
   };
 
+  // ─── Forgot Password ──────────────────────────────────────────────────────
+  const handleForgotSendOTP = async (e) => {
+    if(e) e.preventDefault();
+    setLoading(true); setError(''); setSuccess(''); setWakingUp('');
+    try {
+      const res = await fetchWithRetry(`${BASE_URL}/vendors/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      }, setWakingUp);
+      const data = await res.json();
+      setWakingUp('');
+      if (res.ok) {
+        setSuccess('✅ Reset OTP sent to your email!');
+        setForgotStep(2);
+        setForgotTimer(60);
+      } else {
+        setError(data.message || 'Failed to send OTP!');
+      }
+    } catch {
+      setWakingUp('');
+      setError('Server connection failed.');
+    }
+    setLoading(false);
+  };
+
+  const handleForgotReset = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match!');
+      return;
+    }
+    setLoading(true); setError(''); setSuccess(''); setWakingUp('');
+    try {
+      const res = await fetchWithRetry(`${BASE_URL}/vendors/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail, otp: forgotOtp, newPassword }),
+      }, setWakingUp);
+      const data = await res.json();
+      setWakingUp('');
+      if (res.ok) {
+        setSuccess('✅ Password reset successful! Please login.');
+        setIsForgot(false); setForgotStep(1); setForgotEmail(''); setForgotOtp(''); setNewPassword(''); setConfirmPassword('');
+      } else {
+        setError(data.message || 'Invalid OTP or failed to reset!');
+      }
+    } catch {
+      setWakingUp('');
+      setError('Server connection failed.');
+    }
+    setLoading(false);
+  };
+
   // ─── Login ────────────────────────────────────────────────────────────────
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -253,8 +307,34 @@ const Login = ({ onLogin }) => {
 
         {/* Main Logic */}
         {isForgot ? (
-           /* Forgot Password Logic stays exactly like your previous version */
-           <div /> 
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-center text-gray-800">Reset Password</h2>
+            {forgotStep === 1 && (
+              <form onSubmit={handleForgotSendOTP} className="space-y-4">
+                <p className="text-sm text-gray-600 text-center">Enter your email to receive a password reset OTP.</p>
+                <input type="email" placeholder="Enter your email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required className="w-full bg-gray-50 p-4 rounded-xl text-sm" />
+                <button type="submit" disabled={loading} className="w-full bg-green-500 text-white py-4 rounded-xl font-bold">
+                  {loading ? 'Sending OTP...' : 'Send OTP'}
+                </button>
+              </form>
+            )}
+            {forgotStep === 2 && (
+              <form onSubmit={handleForgotReset} className="space-y-4">
+                <input type="text" placeholder="Enter 6-digit OTP" value={forgotOtp} onChange={(e) => setForgotOtp(e.target.value)} required maxLength={6} className="w-full bg-gray-50 p-4 rounded-xl text-sm text-center tracking-widest font-bold" />
+                <input type="password" placeholder="New Password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required className="w-full bg-gray-50 p-4 rounded-xl text-sm" />
+                <input type="password" placeholder="Confirm New Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required className="w-full bg-gray-50 p-4 rounded-xl text-sm" />
+                <button type="submit" disabled={loading || forgotOtp.length < 6} className="w-full bg-green-500 text-white py-4 rounded-xl font-bold">
+                  {loading ? 'Resetting...' : 'Reset Password'}
+                </button>
+                <button type="button" onClick={handleForgotSendOTP} disabled={forgotTimer > 0 || loading} className="w-full text-green-600 text-sm font-bold text-center">
+                  {forgotTimer > 0 ? `Resend OTP in ${forgotTimer}s` : 'Resend OTP Now'}
+                </button>
+              </form>
+            )}
+            <button onClick={() => { setIsForgot(false); setForgotStep(1); setError(''); setSuccess(''); }} className="w-full text-gray-500 text-sm mt-2 text-center hover:text-gray-800">
+              Back to Login
+            </button>
+          </div>
         ) : (
           <>
             <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
@@ -313,6 +393,11 @@ const Login = ({ onLogin }) => {
                   <input type={showPassword ? 'text' : 'password'} placeholder={L.password} className="w-full bg-gray-50 p-4 rounded-xl text-sm" onChange={e => setFormData({...formData, Password: e.target.value})} required />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-4 text-gray-400">
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <div className="flex justify-end">
+                  <button type="button" onClick={() => { setIsForgot(true); setError(''); setSuccess(''); }} className="text-sm text-green-600 font-medium hover:underline">
+                    Forgot Password?
                   </button>
                 </div>
                 <button type="submit" disabled={loading} className="w-full bg-green-500 text-white py-4 rounded-xl font-bold">

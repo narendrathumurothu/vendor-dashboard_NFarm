@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 
-const Sidebar = ({ activePage, setActivePage }) => {
+const Sidebar = ({ activePage, setActivePage, isOpen, setIsOpen }) => {
   const [collapsed, setCollapsed] = useState(false);
 
   const menuItems = [
@@ -26,9 +26,22 @@ const Sidebar = ({ activePage, setActivePage }) => {
   };
 
   return (
-    <div
-      className={`min-h-screen flex flex-col transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}
-      style={{ background: 'linear-gradient(180deg, #14532d, #166534, #15803d)' }}>
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden transition-opacity"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Container */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 md:relative min-h-screen flex flex-col transition-all duration-300 
+          ${collapsed ? 'w-16' : 'w-64'} 
+          ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        `}
+        style={{ background: 'linear-gradient(180deg, #14532d, #166534, #15803d)' }}>
 
       {/* Logo */}
       <div className="flex items-center justify-between p-4 border-b border-green-700">
@@ -67,7 +80,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
           const Icon     = item.icon;
           const isActive = activePage === item.id;
           return (
-            <button key={item.id} onClick={() => setActivePage(item.id)}
+            <button key={item.id} onClick={() => { setActivePage(item.id); setIsOpen(false); }}
               className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 text-left
                 ${isActive
                   ? 'bg-white bg-opacity-20 text-white border-l-4 border-green-400'
@@ -93,6 +106,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
         </button>
       </div>
     </div>
+    </>
   );
 };
 

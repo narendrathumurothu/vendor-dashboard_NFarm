@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 
 const pageTitles = {
   'home': '🏠 Dashboard',
@@ -12,7 +12,7 @@ const pageTitles = {
   'profile': '👤 My Profile',
 };
 
-const Navbar = ({ activePage, setActivePage }) => {
+const Navbar = ({ activePage, setActivePage, onMenuClick }) => {
   const vendorName = localStorage.getItem('vendorName') || 'Farmer';
   const [unread, setUnread] = useState(0);
 
@@ -42,11 +42,19 @@ const Navbar = ({ activePage, setActivePage }) => {
       style={{ borderBottom: '1px solid #f0efe1' }}>
 
       {/* Left - Page Title */}
-      <div>
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={onMenuClick} 
+          className="md:hidden p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <Menu size={24} />
+        </button>
+        <div>
         <h1 className="text-xl font-bold text-gray-800">
           {pageTitles[activePage] || '🌾 NFarm'}
         </h1>
         <p className="text-gray-400 text-xs mt-0.5">NFarm Farmer Dashboard</p>
+      </div>
       </div>
 
       {/* Right - Actions (Search Deleted) */}

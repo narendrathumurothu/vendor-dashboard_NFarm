@@ -10,9 +10,11 @@ import Suggestions  from './pages/Suggestions';
 import Notifications from './pages/Notifications';
 import Myprofile    from './pages/Myprofile';
 import VendorOrders from './pages/VendorOrders';
+import AIChatWidget from './components/AIChatWidget';
 
 function App() {
   const [activePage, setActivePage] = useState('home');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(
     !!localStorage.getItem('token')  // ✅ Already logged in check
   );
@@ -54,18 +56,21 @@ function App() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-gray-100 overflow-hidden relative">
       <Sidebar
         activePage={activePage}
         setActivePage={setActivePage}
         onLogout={handleLogout}
+        isOpen={isSidebarOpen}
+        setIsOpen={setIsSidebarOpen}
       />
-      <div className="flex-1 flex flex-col">
-        <Navbar activePage={activePage} setActivePage={setActivePage} />
-        <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 flex flex-col min-w-0">
+        <Navbar activePage={activePage} setActivePage={setActivePage} onMenuClick={() => setIsSidebarOpen(true)} />
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
           {renderPage()}
         </div>
       </div>
+      <AIChatWidget />
     </div>
   );
 }
